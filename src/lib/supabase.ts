@@ -4,8 +4,9 @@ const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
 const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
 const createMockClient = () => {
-  console.warn('Supabase credentials missing. Using mock client.');
-  const mockResult = { data: null, error: { message: 'Supabase not configured' } };
+  const errorMessage = 'Supabase credentials missing. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables (e.g. in Vercel project settings).';
+  console.warn(errorMessage);
+  const mockResult = { data: null, error: { message: errorMessage } };
   const mockPromise = Promise.resolve(mockResult);
   
   const mockQueryBuilder = {
@@ -26,9 +27,9 @@ const createMockClient = () => {
       getSession: async () => ({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signOut: async () => {},
-      signInWithPassword: async () => ({ error: { message: 'Supabase not configured' } }),
-      signUp: async () => ({ error: { message: 'Supabase not configured' } }),
-      signInWithOAuth: async () => ({ error: { message: 'Supabase not configured' } }),
+      signInWithPassword: async () => ({ error: { message: errorMessage } }),
+      signUp: async () => ({ error: { message: errorMessage } }),
+      signInWithOAuth: async () => ({ error: { message: errorMessage } }),
       getUser: async () => ({ data: { user: null }, error: null }),
     },
     from: () => mockQueryBuilder,
