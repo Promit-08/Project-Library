@@ -1,0 +1,8 @@
+{
+  "name": "Project Library",
+  "description": "A collaborative platform for scholars to upload, predict domains using AI, and research academic projects through integrated YouTube search.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}
