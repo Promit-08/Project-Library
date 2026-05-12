@@ -73,7 +73,7 @@ export function Home() {
       {/* Sidebar */}
       <SessionNavBar />
 
-      <div className="relative flex flex-1 flex-col md:pl-[4.5rem] pb-16 md:pb-0">
+      <div className="relative flex flex-1 flex-col lg:pl-[4.5rem] pb-16 lg:pb-0">
         {/* Background Image with Overlay */}
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"

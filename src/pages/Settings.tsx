@@ -81,7 +81,7 @@ export function Settings() {
     )}>
       <SessionNavBar />
 
-      <div className="flex flex-1 flex-col md:pl-[4.5rem] pb-20 md:pb-0">
+      <div className="flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
         <main className="flex-1 p-4 sm:p-6 lg:p-12 max-w-4xl mx-auto w-full">
           <header className="mb-12">
             <motion.div

@@ -291,7 +291,7 @@ export function Profile() {
     )}>
       <SessionNavBar />
 
-      <div className="relative flex flex-1 flex-col md:pl-[4.5rem] pb-20 md:pb-0">
+      <div className="relative flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
         {/* DB Setup Warning Banner */}
         <AnimatePresence>
           {(dbSetupRequired || storageSetupRequired) && (

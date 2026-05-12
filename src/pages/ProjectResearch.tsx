@@ -66,7 +66,7 @@ export function ProjectResearch() {
       {/* Sidebar */}
       <SessionNavBar />
 
-      <div className="relative flex flex-1 flex-col md:pl-[4.5rem] pb-20 md:pb-0">
+      <div className="relative flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
         <div className="p-4 sm:p-8 lg:p-12 pb-24">
           <header className="max-w-6xl mx-auto mb-12">
             <motion.div 

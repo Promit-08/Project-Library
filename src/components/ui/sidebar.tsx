@@ -146,7 +146,7 @@ export function SessionNavBar() {
       {/* Desktop Sidebar */}
       <motion.div
         className={cn(
-          "sidebar fixed left-0 z-40 h-full shrink-0 border-r backdrop-blur-xl transition-all duration-500 hidden md:block",
+          "sidebar fixed left-0 z-40 h-full shrink-0 border-r backdrop-blur-xl transition-all duration-500 hidden lg:block",
           theme === 'dark' 
             ? "border-white/5 bg-slate-950/50 text-slate-400" 
             : "border-slate-200 bg-white/80 text-slate-500"
@@ -355,7 +355,7 @@ export function SessionNavBar() {
 
       {/* Mobile Bottom Nav */}
       <div className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-around border-t px-2 md:hidden transition-all duration-300",
+        "fixed bottom-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-around border-t px-2 lg:hidden transition-all duration-300",
         theme === 'dark' 
           ? "bg-slate-950/90 border-white/5 backdrop-blur-lg" 
           : "bg-white/90 border-slate-200 backdrop-blur-lg shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"

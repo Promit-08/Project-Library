@@ -134,7 +134,7 @@ export function Notifications() {
     )}>
       <SessionNavBar />
 
-      <div className="flex flex-1 flex-col md:pl-[4.5rem] pb-20 md:pb-0">
+      <div className="flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
         {/* DB Setup Warning Banner */}
         <AnimatePresence>
           {dbSetupRequired && (
