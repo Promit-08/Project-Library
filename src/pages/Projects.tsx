@@ -126,60 +126,64 @@ export function Projects() {
     )}>
       <SessionNavBar />
 
-      <div className="flex flex-1 flex-col md:pl-[4.5rem] pb-20 md:pb-0">
-        <main className="flex-1 p-4 sm:p-6 lg:p-12 max-w-6xl mx-auto w-full">
-          <header className="mb-8 lg:mb-12 space-y-6">
+      <div className={cn(
+        "flex-1 flex flex-col w-full min-h-screen transition-all duration-500",
+        "md:pl-[4.5rem] pb-24 md:pb-0"
+      )}>
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-16 overflow-x-hidden">
+          <header className="mb-10 lg:mb-16">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3 mb-10"
             >
               <h1 className={cn(
-                "text-4xl font-serif italic mb-2 tracking-tight transition-colors",
+                "text-3xl sm:text-5xl lg:text-6xl font-serif italic mb-2 tracking-tight transition-colors",
                 theme === 'dark' ? "text-white" : "text-slate-900"
               )}>Community Library</h1>
               <p className={cn(
-                "font-light max-w-lg transition-colors",
-                theme === 'dark' ? "text-slate-500" : "text-slate-600"
+                "font-light max-w-xl transition-colors text-sm sm:text-lg leading-relaxed",
+                theme === 'dark' ? "text-slate-400" : "text-slate-600"
               )}>
-                Explore, learn, and engage with the finest academic projects from around the world.
+                A curated sanctuary of academic excellence. Explore, peer-review, and discover groundbreaking research from scholors around the world.
               </p>
             </motion.div>
 
-            <div className="space-y-6">
+            <div className="space-y-10">
               <div className="relative group w-full max-w-2xl">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-teal-500 transition-colors z-10" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-teal-500 transition-colors z-10" />
                 <input 
                   type="text"
-                  placeholder="Search scholars..."
+                  placeholder="Search project titles, keywords..."
                   className={cn(
-                    "w-full border rounded-2xl pl-11 pr-20 ms:pr-24 sm:pr-28 py-3 sm:py-4 outline-none focus:ring-2 focus:ring-teal-500/50 transition-all shadow-xl font-sans text-sm sm:text-base",
+                    "w-full border rounded-2xl pl-12 pr-24 sm:pr-32 py-4 sm:py-5 outline-none focus:ring-2 focus:ring-teal-500/50 transition-all shadow-2xl font-sans text-sm sm:text-base",
                     theme === 'dark' 
-                      ? "bg-slate-900 border-white/10 text-white placeholder:text-slate-600 focus:bg-slate-800" 
+                      ? "bg-slate-900/50 border-white/10 text-white placeholder:text-slate-700 focus:bg-slate-900" 
                       : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
                   )}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <div className="absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="rounded-xl bg-teal-500/10 text-teal-500 hover:bg-teal-500 hover:text-white px-2.5 sm:px-5 h-7 sm:h-9 text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all"
+                    className="rounded-xl bg-teal-500/10 text-teal-500 hover:bg-teal-500 hover:text-white px-4 sm:px-6 h-9 sm:h-11 text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all"
                   >
                     Search
                   </Button>
                 </div>
               </div>
               
-              <div className="flex flex-col gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 ml-1">Filter by Discipline</span>
-                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none w-full max-w-full items-center">
+              <div className="flex flex-col gap-4">
+                <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-500 ml-1">Discipline Gallery</span>
+                <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-none w-full items-center -mx-4 px-4 sm:mx-0 sm:px-0">
                   {categories.map(cat => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all border",
+                        "px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border shrink-0",
                         selectedCategory === cat 
                           ? "bg-teal-500 text-white border-teal-500 shadow-lg shadow-teal-500/20" 
                           : (theme === 'dark' ? "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50")
@@ -493,10 +497,10 @@ function ProjectCard({
       {/* Subtle glow effect on hover */}
       <div className="absolute -inset-1 bg-gradient-to-r from-teal-500/0 via-teal-500/5 to-teal-500/0 opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-700 pointer-events-none" />
 
-      <div className="flex flex-col lg:flex-row relative">
+      <div className="flex flex-col lg:flex-row relative w-full">
         {/* Project Image/Placeholder */}
         <div className={cn(
-          "lg:w-80 h-48 sm:h-56 lg:h-auto relative flex items-center justify-center overflow-hidden shrink-0 border-b lg:border-b-0 lg:border-r",
+          "lg:w-80 h-56 sm:h-64 lg:h-auto relative flex items-center justify-center overflow-hidden shrink-0 border-b lg:border-b-0 lg:border-r",
           theme === 'dark' ? "bg-slate-950/50 border-white/5" : "bg-slate-100 border-slate-200"
         )}>
           {project.image_url ? (
@@ -524,48 +528,48 @@ function ProjectCard({
           </div>
         </div>
 
-        <div className="flex-1 p-5 sm:p-7 lg:p-10 flex flex-col justify-between overflow-hidden">
+        <div className="flex-1 p-4 sm:p-8 lg:p-10 flex flex-col justify-between overflow-hidden w-full">
           <div>
-            <div className="flex items-center gap-2 sm:gap-3 mb-4 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
               <div className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md border transition-colors shrink-0",
-                theme === 'dark' ? "bg-white/5 border-white/5 text-slate-500" : "bg-slate-50 border-slate-100 text-slate-400"
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors shrink-0",
+                theme === 'dark' ? "bg-white/5 border-white/10 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-500"
               )}>
                 <Clock className="w-3 h-3" />
-                <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-bold">
+                <span className="text-[9px] uppercase tracking-wider font-bold">
                   {new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
-              <div className={cn("h-px w-2 sm:w-8 transition-colors shrink-0", theme === 'dark' ? "bg-white/10" : "bg-slate-200")} />
               <div className="flex items-center gap-1.5 shrink-0">
-                <User className="w-3 h-3 text-teal-500/50" />
-                <span className={cn("text-[9px] sm:text-[10px] uppercase tracking-wider font-bold truncate max-w-[100px] sm:max-w-none", theme === 'dark' ? "text-teal-500" : "text-teal-600")}>Verified Scholar</span>
+                <Badge variant="outline" className={cn("rounded-full py-0.5 px-2 text-[9px] uppercase font-bold tracking-wider", theme === 'dark' ? "border-teal-500/30 text-teal-400 bg-teal-500/5" : "border-teal-500/20 text-teal-600 bg-teal-50/50")}>
+                  {project.category}
+                </Badge>
               </div>
             </div>
 
             <h3 className={cn(
-               "text-2xl sm:text-3xl font-serif italic group-hover:text-teal-400 transition-all duration-500 leading-[1.1] mb-4",
+               "text-xl sm:text-2xl lg:text-3xl font-serif italic group-hover:text-teal-400 transition-all duration-500 leading-tight mb-3 lg:mb-4",
                theme === 'dark' ? "text-white" : "text-slate-900"
             )}>
               {project.title}
             </h3>
             
             <p className={cn(
-              "text-sm leading-relaxed max-w-2xl line-clamp-2 italic font-light font-sans mb-8 transition-colors",
+              "text-xs sm:text-sm leading-relaxed max-w-2xl line-clamp-2 sm:line-clamp-3 italic font-light font-sans mb-6 sm:mb-8 transition-colors",
               theme === 'dark' ? "text-slate-400" : "text-slate-500"
             )}>
               "{project.description}"
             </p>
           </div>
 
-          <div className={cn("flex flex-wrap items-center gap-3 sm:gap-6 pt-6 border-t transition-colors", theme === 'dark' ? "border-white/5" : "border-slate-100")}>
-            <div className="flex items-center gap-1">
-              <div className={cn("flex items-center gap-2 sm:gap-4 p-1 rounded-full border transition-colors", theme === 'dark' ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200")}>
+          <div className={cn("flex flex-wrap items-center gap-4 sm:gap-6 pt-6 border-t transition-colors", theme === 'dark' ? "border-white/5" : "border-slate-100")}>
+            <div className="flex items-center gap-2">
+              <div className={cn("flex items-center gap-1 sm:gap-2 p-1 rounded-full border transition-colors", theme === 'dark' ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200")}>
                 <button 
                   onClick={() => handleInteraction('like')}
                   disabled={interactionLoading}
                   className={cn(
-                    "flex items-center gap-1.5 sm:gap-2 transition-all p-1.5 sm:p-2 px-2.5 sm:px-4 rounded-full",
+                    "flex items-center gap-1.5 transition-all p-1.5 sm:p-2 px-2.5 sm:px-3.5 rounded-full",
                     project.userInteraction === 'like' 
                       ? "bg-teal-500 text-white shadow-lg shadow-teal-500/20" 
                       : (theme === 'dark' ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-teal-600")
@@ -578,7 +582,7 @@ function ProjectCard({
                   onClick={() => handleInteraction('dislike')}
                   disabled={interactionLoading}
                   className={cn(
-                    "flex items-center gap-1.5 sm:gap-2 transition-all p-1.5 sm:p-2 px-2.5 sm:px-4 rounded-full",
+                    "flex items-center gap-1.5 transition-all p-1.5 sm:p-2 px-2.5 sm:px-3.5 rounded-full",
                     project.userInteraction === 'dislike' 
                       ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" 
                       : (theme === 'dark' ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-rose-600")
@@ -600,7 +604,7 @@ function ProjectCard({
               </span>
             </div>
 
-            <div className={cn("flex flex-col gap-0.5 sm:gap-1 sm:pr-6 sm:border-r transition-colors", theme === 'dark' ? "border-white/10" : "border-slate-200")}>
+            <div className={cn("flex flex-col gap-0.5 sm:gap-1 transition-colors min-w-[60px]", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button 
@@ -611,26 +615,26 @@ function ProjectCard({
                       (project.userRating || 0) >= star ? "text-amber-500" : (theme === 'dark' ? "text-slate-800 hover:text-amber-500/30" : "text-slate-300 hover:text-amber-500/30")
                     )}
                   >
-                    <Star className={cn("w-3 sm:w-3.5 h-3 sm:h-3.5", (project.userRating || 0) >= star && "fill-amber-500")} />
+                    <Star className={cn("w-2.5 sm:w-3.5 h-2.5 sm:h-3.5", (project.userRating || 0) >= star && "fill-amber-500")} />
                   </button>
                 ))}
               </div>
-              <span className={cn("text-[9px] font-bold uppercase tracking-tighter transition-colors", theme === 'dark' ? "text-slate-600" : "text-slate-400")}>
-                {project.rating.toFixed(1)} / 5
+              <span className="text-[8px] font-bold uppercase tracking-tighter opacity-70">
+                {project.rating.toFixed(1)} Rating
               </span>
             </div>
 
-            <div className="ml-auto w-full sm:w-auto mt-2 sm:mt-0 flex justify-end">
+            <div className="ml-auto flex items-center">
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={onToggleExpand}
-                className="text-teal-500 hover:text-teal-400 hover:bg-teal-500/5 gap-2 font-bold uppercase tracking-widest text-[9px] sm:text-[10px] pr-0"
+                className="text-teal-500 hover:text-teal-400 hover:bg-teal-500/5 gap-1.5 sm:gap-2 font-bold uppercase tracking-widest text-[9px] sm:text-[10px] px-2 sm:px-3"
               >
                 {isExpanded ? (
-                  <>Collapse Archive <ChevronUp className="w-3 h-3" /></>
+                  <>Collapse <ChevronUp className="w-3 h-3" /></>
                 ) : (
-                  <>Explore Full Work <ChevronDown className="w-3 h-3" /></>
+                  <>Explore <ChevronDown className="w-3 h-3" /></>
                 )}
               </Button>
             </div>

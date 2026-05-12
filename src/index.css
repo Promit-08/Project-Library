@@ -50,6 +50,14 @@
   .nav-link.active::after {
     @apply w-full;
   }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
