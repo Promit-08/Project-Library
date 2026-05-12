@@ -253,6 +253,19 @@ function ProjectCard({
   const [interactionLoading, setInteractionLoading] = React.useState(false);
   const [viewerProfile, setViewerProfile] = React.useState<UserProfile | null>(null);
   const [creatorProfile, setCreatorProfile] = React.useState<UserProfile | null>(null);
+  const commentsSectionRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToComments = () => {
+    if (!isExpanded) {
+      onToggleExpand();
+      // Use setTimeout to wait for expansion animation to start or complete
+      setTimeout(() => {
+        commentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    } else {
+      commentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   React.useEffect(() => {
     if (user) {
@@ -389,17 +402,41 @@ function ProjectCard({
   const handleRating = async (value: number) => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      setInteractionLoading(true);
+      const { error: ratingError } = await supabase
         .from('ratings')
         .upsert({
           project_id: project.id,
           user_id: user.id,
           rating: value
-        });
+        }, { onConflict: 'project_id,user_id' });
 
-      if (error) throw error;
+      if (ratingError) throw ratingError;
       
-      // Update counts in projects table (ideally handled by trigger)
+      // Fetch all ratings for this project to calculate average
+      const { data: allRatings, error: fetchError } = await supabase
+        .from('ratings')
+        .select('rating')
+        .eq('project_id', project.id);
+
+      if (fetchError) throw fetchError;
+
+      if (allRatings && allRatings.length > 0) {
+        const totalRating = allRatings.reduce((acc, r) => acc + r.rating, 0);
+        const averageRating = totalRating / allRatings.length;
+
+        // Update the project's aggregate rating
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({ 
+            rating: averageRating, 
+            rating_count: allRatings.length 
+          })
+          .eq('id', project.id);
+
+        if (updateError) throw updateError;
+      }
+
       const displayName = viewerProfile?.full_name || user.email?.split('@')[0] || 'A scholar';
       await createNotification({
         userId: project.student_id,
@@ -409,10 +446,11 @@ function ProjectCard({
         content: `${displayName} rated your project "${project.title}" with ${value} stars.`
       });
 
-      // Ideally trigger a calculation function in SQL
       onUpdate();
     } catch (err) {
       console.error('Rating error:', err);
+    } finally {
+      setInteractionLoading(false);
     }
   };
 
@@ -594,15 +632,18 @@ function ProjectCard({
               </div>
             </div>
 
-            <div className={cn(
-              "flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-all group/stat",
-              theme === 'dark' ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-200 hover:bg-slate-100"
-            )}>
+            <button 
+              onClick={scrollToComments}
+              className={cn(
+                "flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-all group/stat cursor-pointer",
+                theme === 'dark' ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+              )}
+            >
               <MessageSquare className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-slate-500 group-hover/stat:text-teal-500 transition-colors" />
               <span className={cn("text-[10px] sm:text-[11px] font-bold transition-colors", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>
                 {project.comments_count} <span className="hidden sm:inline font-light opacity-50 ml-1">Insights</span>
               </span>
-            </div>
+            </button>
 
             <div className={cn("flex flex-col gap-0.5 sm:gap-1 transition-colors min-w-[60px]", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>
               <div className="flex gap-0.5">
@@ -620,7 +661,7 @@ function ProjectCard({
                 ))}
               </div>
               <span className="text-[8px] font-bold uppercase tracking-tighter opacity-70">
-                {project.rating.toFixed(1)} Rating
+                {(project.rating || 0).toFixed(1)} Rating
               </span>
             </div>
 
@@ -705,7 +746,10 @@ function ProjectCard({
                 </div>
 
                 {/* Comment Section */}
-                <div className="pt-6 sm:pt-8 space-y-6">
+                <div 
+                  ref={commentsSectionRef}
+                  className="pt-6 sm:pt-8 space-y-6"
+                >
                   <h4 className={cn("text-xs sm:text-sm font-bold uppercase tracking-widest flex items-center gap-2", theme === 'dark' ? "text-white" : "text-slate-900")}>
                     <MessageSquare className="w-4 h-4 text-teal-500" /> 
                     Comments ({project.comments_count})
