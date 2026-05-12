@@ -8,6 +8,7 @@ import {
   ChevronsUpDown,
   Home,
   FolderKanban,
+  Users,
   Upload,
   LogOut,
   Plus,
@@ -217,6 +218,21 @@ export function SessionNavBar() {
                 </Link>
 
                 <Link
+                  to="/connections"
+                  className={cn(
+                    "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
+                    pathname === "/connections" 
+                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
+                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                  )}
+                >
+                  <Users className="h-5 w-5 shrink-0" />
+                  {!isCollapsed && (
+                    <motion.span variants={variants} className="text-sm font-medium">Connections</motion.span>
+                  )}
+                </Link>
+
+                <Link
                   to="/research"
                   className={cn(
                     "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
@@ -379,6 +395,16 @@ export function SessionNavBar() {
         >
           <FolderKanban className="h-5 w-5" />
           <span className="text-[10px] font-medium">Explore</span>
+        </Link>
+        <Link 
+          to="/connections" 
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-1.5 transition-all duration-200",
+            pathname === "/connections" ? "text-teal-500" : "text-slate-400"
+          )}
+        >
+          <Users className="h-5 w-5" />
+          <span className="text-[10px] font-medium">Peers</span>
         </Link>
         <Link 
           to="/upload" 

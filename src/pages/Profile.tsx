@@ -17,25 +17,34 @@ import {
   Loader2,
   ChevronRight,
   Book,
-  Plus
+  Plus,
+  UserPlus,
+  UserMinus,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../components/ThemeProvider';
 import { cn } from '../lib/utils';
 
 export function Profile() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const { userId } = useParams<{ userId: string }>();
   const { theme } = useTheme();
+  
+  const targetUserId = userId || authUser?.id;
+  const isOwnProfile = !userId || userId === authUser?.id;
+
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isEditing, setIsEditing] = React.useState(false);
   const [editedProfile, setEditedProfile] = React.useState<Partial<UserProfile>>({});
   const [projectCount, setProjectCount] = React.useState(0);
-  const [followersCount, setFollowersCount] = React.useState(0); 
+  const [followersCount, setFollowersCount] = React.useState(0);
+  const [followingCount, setFollowingCount] = React.useState(0); 
   const [saving, setSaving] = React.useState(false);
   const [dbSetupRequired, setDbSetupRequired] = React.useState(false);
+  const [missingColumns, setMissingColumns] = React.useState<string[]>([]);
   const [storageSetupRequired, setStorageSetupRequired] = React.useState(false);
   const [locationName, setLocationName] = React.useState<string>("Detecting location...");
   const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null);
@@ -43,11 +52,15 @@ export function Profile() {
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [myProjects, setMyProjects] = React.useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = React.useState(false);
+  const [connections, setConnections] = React.useState<{ followers: any[], following: any[] }>({ followers: [], following: [] });
+  const [loadingConnections, setLoadingConnections] = React.useState(false);
+  const [followLoading, setFollowLoading] = React.useState(false);
+  const [isFollowing, setIsFollowing] = React.useState(false);
   const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if (navigator.geolocation) {
+    if (isOwnProfile && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
@@ -58,35 +71,156 @@ export function Profile() {
           )
             .then((res) => res.json())
             .then((data) => {
-              setLocationName(
-                data.address.city || data.address.town || data.address.village || "Unknown"
-              );
+              const loc = data.address.city || data.address.town || data.address.village || "Unknown";
+              setLocationName(loc);
+              // Auto-update location in profile if it's empty and we are looking at our own
+              if (authUser && profile && !profile.location) {
+                updateSingleField('location', loc);
+              }
             })
             .catch(() => setLocationName("Unknown location"));
         },
         () => setLocationName("Location not available")
       );
+    } else if (!isOwnProfile) {
+      setLocationName(""); // Clear detection message for other users' profiles
     } else {
       setLocationName("Geolocation not supported");
     }
-  }, []);
+  }, [isOwnProfile, authUser?.id, !!profile]);
 
   React.useEffect(() => {
-    if (user) {
+    if (targetUserId) {
+      // Reset state for new profile
+      setProfile(null);
+      setEditedProfile({});
+      setProjectCount(0);
+      setFollowersCount(0);
+      setFollowingCount(0);
+      setMyProjects([]);
+      setConnections({ followers: [], following: [] });
+      setIsFollowing(false);
+      setLoading(true);
+
       fetchProfile();
       fetchProjectCount();
       fetchUserProjects();
+      fetchFollowersCount();
+      fetchFollowingCount();
+      fetchConnections();
+      if (!isOwnProfile && authUser) {
+        checkIfFollowing();
+      }
     }
-  }, [user]);
+  }, [targetUserId, authUser?.id]);
+
+  const fetchConnections = async () => {
+    if (!targetUserId) return;
+    try {
+      setLoadingConnections(true);
+      
+      // Fetch following
+      const { data: followingData } = await supabase
+        .from('follows')
+        .select(`
+          followed_id,
+          profiles:followed_id (id, full_name, username, avatar_url, university, work, email)
+        `)
+        .eq('follower_id', targetUserId);
+
+      // Fetch followers
+      const { data: followersData } = await supabase
+        .from('follows')
+        .select(`
+          follower_id,
+          profiles:follower_id (id, full_name, username, avatar_url, university, work, email)
+        `)
+        .eq('followed_id', targetUserId);
+
+      setConnections({
+        following: followingData?.map((f: any) => f.profiles) || [],
+        followers: followersData?.map((f: any) => f.profiles) || []
+      });
+    } catch (err) {
+      console.error('Error fetching connections:', err);
+    } finally {
+      setLoadingConnections(false);
+    }
+  };
+
+  const checkIfFollowing = async () => {
+    if (!authUser || !targetUserId) return;
+    const { data } = await supabase
+      .from('follows')
+      .select('*')
+      .eq('follower_id', authUser.id)
+      .eq('followed_id', targetUserId)
+      .maybeSingle();
+    setIsFollowing(!!data);
+  };
+
+  const fetchFollowersCount = async () => {
+    if (!targetUserId) return;
+    const { count } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('followed_id', targetUserId);
+    setFollowersCount(count || 0);
+  };
+
+  const fetchFollowingCount = async () => {
+    if (!targetUserId) return;
+    const { count } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_id', targetUserId);
+    setFollowingCount(count || 0);
+  };
+
+  const toggleFollow = async () => {
+    if (!authUser || !targetUserId || isOwnProfile) return;
+    try {
+      setFollowLoading(true);
+      if (isFollowing) {
+        await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', authUser.id)
+          .eq('followed_id', targetUserId);
+        setIsFollowing(false);
+        setFollowersCount(prev => prev - 1);
+      } else {
+        await supabase
+          .from('follows')
+          .insert({ follower_id: authUser.id, followed_id: targetUserId });
+        setIsFollowing(true);
+        setFollowersCount(prev => prev + 1);
+
+        // Notify
+        await supabase.from('notifications').insert({
+          user_id: targetUserId,
+          actor_id: authUser.id,
+          type: 'rating',
+          content: `${authUser.email?.split('@')[0]} started following you.`
+        });
+      }
+      // Refresh connections list
+      fetchConnections();
+    } catch (err) {
+      console.error('Follow error:', err);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const fetchUserProjects = async () => {
-    if (!user) return;
+    if (!targetUserId) return;
     try {
       setLoadingProjects(true);
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('student_id', user.id)
+        .eq('student_id', targetUserId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -99,19 +233,18 @@ export function Profile() {
   };
 
   const fetchProfile = async () => {
-    if (!user) return;
+    if (!targetUserId) return;
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', targetUserId)
         .maybeSingle();
 
       if (error) {
         if (error.code === 'PGRST205') {
           setDbSetupRequired(true);
-          // Don't throw, just exit and use fallback
           return;
         }
         throw error;
@@ -120,13 +253,13 @@ export function Profile() {
       if (data) {
         setProfile(data);
         setEditedProfile(data);
-      } else {
-        // Create initial profile if not exists
+      } else if (isOwnProfile && authUser) {
+        // Create initial profile if it's the current user and not found
         const initialProfile = {
-          id: user.id,
-          username: user.email?.split('@')[0] || 'user',
-          full_name: user.email?.split('@')[0] || 'User',
-          email: user.email || '',
+          id: authUser.id,
+          username: authUser.email?.split('@')[0] || 'user',
+          full_name: authUser.email?.split('@')[0] || 'User',
+          email: authUser.email || '',
         };
         
         const { data: newData, error: insertError } = await supabase
@@ -135,60 +268,39 @@ export function Profile() {
           .select()
           .single();
         
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          // Fallback for initial UI
-          setProfile(initialProfile as UserProfile);
-          setEditedProfile(initialProfile as UserProfile);
-        } else {
+        if (!insertError && newData) {
           setProfile(newData);
           setEditedProfile(newData);
+        } else {
+          setProfile(initialProfile as UserProfile);
+          setEditedProfile(initialProfile as UserProfile);
         }
       }
     } catch (error: any) {
-      console.warn('Profile fetch handled (missing table or connection):', error.message);
-      // Construct a minimal profile so the UI doesn't break
-      const fallbackProfile = {
-        id: user.id,
-        username: user.email?.split('@')[0] || 'user',
-        full_name: user.email?.split('@')[0] || 'User',
-        email: user.email || '',
-        bio: error.message?.includes('PGRST205') || error.message?.includes('profiles') 
-          ? '⚠️ Warning: Profiles table not found. Please run the SQL setup script in Supabase.'
-          : ''
-      };
-      setProfile(fallbackProfile as UserProfile);
-      setEditedProfile(fallbackProfile as UserProfile);
+      console.error('Profile fetch error:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchProjectCount = async () => {
-    if (!user) return;
+    if (!targetUserId) return;
     try {
       const { count, error } = await supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
-        .eq('student_id', user.id);
+        .eq('student_id', targetUserId);
 
-      if (error) {
-        if (error.code === 'PGRST205') {
-          setDbSetupRequired(true);
-          setProjectCount(0);
-          return;
-        }
-        throw error;
+      if (!error) {
+        setProjectCount(count || 0);
       }
-      setProjectCount(count || 0);
     } catch (error) {
       console.error('Error fetching project count:', error);
-      setProjectCount(0);
     }
   };
 
   const handleSave = async () => {
-    if (!user || !profile) return;
+    if (!authUser || !profile) return;
     try {
       setSaving(true);
       let updatedAvatarUrl = profile.avatar_url;
@@ -196,7 +308,7 @@ export function Profile() {
       // Handle file upload if a new file was selected
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -226,7 +338,7 @@ export function Profile() {
           avatar_url: updatedAvatarUrl,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('id', authUser.id);
 
       if (error) throw error;
       
@@ -258,13 +370,19 @@ export function Profile() {
   };
 
   const updateSingleField = async (field: keyof UserProfile, value: string) => {
-    if (!user) return;
+    if (!authUser) return;
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ [field]: value })
-        .eq('id', user.id);
-      if (error) throw error;
+        .eq('id', authUser.id);
+      if (error) {
+        if (error.code === 'PGRST204' || error.message?.includes('column')) {
+          setMissingColumns(prev => [...new Set([...prev, field as string])]);
+          setDbSetupRequired(true);
+        }
+        throw error;
+      }
       if (profile) setProfile({ ...profile, [field]: value });
     } catch (err) {
       console.error(`Error updating ${field}:`, err);
@@ -282,7 +400,7 @@ export function Profile() {
     );
   }
 
-  const userInitial = user?.email?.charAt(0).toUpperCase() || 'U';
+  const userInitial = profile?.email?.charAt(0).toUpperCase() || profile?.full_name?.charAt(0).toUpperCase() || 'U';
 
   return (
     <div className={cn(
@@ -310,9 +428,13 @@ export function Profile() {
                     <>
                       <span className="font-bold">Storage Bucket Required:</span> The bucket "avatars" was not found. Please create it in your Supabase Storage dashboard.
                     </>
+                  ) : missingColumns.length > 0 ? (
+                    <>
+                      <span className="font-bold">Database Update Required:</span> Columns <span className="underline">{missingColumns.join(', ')}</span> are missing from your profiles table.
+                    </>
                   ) : (
                     <>
-                      <span className="font-bold">Database Setup Required:</span> Tables "profiles" or "projects" were not found in your Supabase schema.
+                      <span className="font-bold">Database Setup Required:</span> Tables "profiles", "projects" or "follows" were not found or misconfigured in Supabase.
                     </>
                   )}
                 </p>
@@ -388,12 +510,14 @@ export function Profile() {
                   className="hidden" 
                 />
 
-                <button 
-                  onClick={handleAvatarIconClick}
-                  className="absolute bottom-2 right-2 p-2 bg-teal-500 rounded-full text-white shadow-lg shadow-teal-500/40 hover:scale-110 active:scale-95 transition-all"
-                >
-                  <Camera className="w-5 h-5" />
-                </button>
+                {isOwnProfile && (
+                  <button 
+                    onClick={handleAvatarIconClick}
+                    className="absolute bottom-2 right-2 p-2 bg-teal-500 rounded-full text-white shadow-lg shadow-teal-500/40 hover:scale-110 active:scale-95 transition-all"
+                  >
+                    <Camera className="w-5 h-5" />
+                  </button>
+                )}
               </div>
 
               {/* Main info */}
@@ -420,40 +544,63 @@ export function Profile() {
                   )}
                   
                   <div className="flex justify-center md:justify-start gap-2">
-                    {(isEditing || previewUrl) ? (
-                      <>
-                        <button 
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="p-2 bg-teal-500 rounded-lg text-white hover:bg-teal-400 transition-all disabled:opacity-50"
-                        >
-                          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setIsEditing(false);
-                            setPreviewUrl(null);
-                            setSelectedFile(null);
-                            setEditedProfile(profile || {});
-                          }}
-                          className={cn(
-                            "p-2 rounded-lg transition-all",
-                            theme === 'dark' ? "bg-white/5 text-white hover:bg-white/10" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                          )}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <button 
-                        onClick={() => setIsEditing(true)}
+                    {!isOwnProfile && authUser ? (
+                      <Button
+                        onClick={toggleFollow}
+                        disabled={followLoading}
                         className={cn(
-                          "p-2 rounded-lg transition-all",
-                          theme === 'dark' ? "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                          "rounded-xl px-6 h-10 transition-all shadow-lg min-w-[120px]",
+                          isFollowing 
+                            ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20" 
+                            : "bg-teal-500 hover:bg-teal-600 text-white shadow-teal-500/20"
                         )}
                       >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                        {followLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : isFollowing ? (
+                          <span className="flex items-center gap-2"><UserMinus className="w-4 h-4" /> Unfollow</span>
+                        ) : (
+                          <span className="flex items-center gap-2"><UserPlus className="w-4 h-4" /> Follow</span>
+                        )}
+                      </Button>
+                    ) : (
+                      <>
+                        {(isEditing || previewUrl) ? (
+                          <>
+                            <button 
+                              onClick={handleSave}
+                              disabled={saving}
+                              className="p-2 bg-teal-500 rounded-lg text-white hover:bg-teal-400 transition-all disabled:opacity-50"
+                            >
+                              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setIsEditing(false);
+                                setPreviewUrl(null);
+                                setSelectedFile(null);
+                                setEditedProfile(profile || {});
+                              }}
+                              className={cn(
+                                "p-2 rounded-lg transition-all",
+                                theme === 'dark' ? "bg-white/5 text-white hover:bg-white/10" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              )}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <button 
+                            onClick={() => setIsEditing(true)}
+                            className={cn(
+                              "p-2 rounded-lg transition-all",
+                              theme === 'dark' ? "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                            )}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -475,6 +622,11 @@ export function Profile() {
                   <div className="flex flex-col items-center md:items-start">
                     <span className={cn("font-bold text-xl", theme === 'dark' ? "text-white" : "text-slate-900")}>{followersCount}</span>
                     <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Followers</span>
+                  </div>
+                  <div className={cn("h-8 w-[1px] mx-2 hidden sm:block", theme === 'dark' ? "bg-white/5" : "bg-slate-200")} />
+                  <div className="flex flex-col items-center md:items-start">
+                    <span className={cn("font-bold text-xl", theme === 'dark' ? "text-white" : "text-slate-900")}>{followingCount}</span>
+                    <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Following</span>
                   </div>
                 </div>
               </div>
@@ -527,9 +679,21 @@ export function Profile() {
                 <div className="p-2 rounded-lg bg-teal-500/10 text-teal-500">
                   <MapPin className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col flex-1">
                   <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Location</span>
-                  <span className={cn("text-sm transition-colors", theme === 'dark' ? "text-slate-200" : "text-slate-700")}>{locationName}</span>
+                  {isEditing ? (
+                    <input 
+                      className={cn(
+                        "text-sm bg-transparent border-none outline-none focus:ring-0 w-full mt-0.5",
+                        theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                      )}
+                      value={editedProfile.location || ''}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, location: e.target.value })}
+                      placeholder="City, Country"
+                    />
+                  ) : (
+                    <span className={cn("text-sm transition-colors", theme === 'dark' ? "text-slate-200" : "text-slate-700")}>{profile?.location || locationName}</span>
+                  )}
                 </div>
               </div>
               <div className={cn(
@@ -539,9 +703,45 @@ export function Profile() {
                 <div className="p-2 rounded-lg bg-teal-500/10 text-teal-500">
                   <Briefcase className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Role</span>
-                  <span className={cn("text-sm transition-colors", theme === 'dark' ? "text-slate-200" : "text-slate-700")}>Undergraduate Scholar</span>
+                <div className="flex flex-col flex-1">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Work / Expertise</span>
+                  {isEditing ? (
+                    <input 
+                      className={cn(
+                        "text-sm bg-transparent border-none outline-none focus:ring-0 w-full mt-0.5",
+                        theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                      )}
+                      value={editedProfile.work || ''}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, work: e.target.value })}
+                      placeholder="Company or field of work"
+                    />
+                  ) : (
+                    <span className={cn("text-sm transition-colors", theme === 'dark' ? "text-slate-200" : "text-slate-700")}>{profile?.work || 'Scholar'}</span>
+                  )}
+                </div>
+              </div>
+              <div className={cn(
+                "flex items-center gap-3 p-4 rounded-xl border transition-all duration-300 group hover:shadow-md",
+                theme === 'dark' ? "bg-white/5 border-white/5 hover:bg-white/10" : "bg-slate-50 border-slate-200 hover:bg-white"
+              )}>
+                <div className="p-2 rounded-lg bg-teal-500/10 text-teal-500">
+                  <Book className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col flex-1">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">University / School</span>
+                  {isEditing ? (
+                    <input 
+                      className={cn(
+                        "text-sm bg-transparent border-none outline-none focus:ring-0 w-full mt-0.5",
+                        theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                      )}
+                      value={editedProfile.university || ''}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, university: e.target.value })}
+                      placeholder="Name of your university"
+                    />
+                  ) : (
+                    <span className={cn("text-sm transition-colors", theme === 'dark' ? "text-slate-200" : "text-slate-700")}>{profile?.university || 'Academic Institution'}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -623,10 +823,83 @@ export function Profile() {
               </h2>
               
               <div className={cn(
-                "backdrop-blur-sm border p-6 rounded-2xl transition-colors",
+                "backdrop-blur-sm border p-6 rounded-2xl transition-colors space-y-6",
                 theme === 'dark' ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200 shadow-sm"
               )}>
-                 <p className="text-sm text-slate-500 text-center italic">No followers yet.</p>
+                {loadingConnections ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Following ({connections.following.length})</h3>
+                      {connections.following.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3">
+                          {connections.following.slice(0, 5).map((p) => (
+                            <div 
+                              key={p.id} 
+                              className="flex items-center gap-3 group cursor-pointer"
+                              onClick={() => navigate(`/profile/${p.id}`)}
+                            >
+                              <Avatar className="h-8 w-8 border border-teal-500/10">
+                                <AvatarImage src={p.avatar_url} />
+                                <AvatarFallback className="bg-slate-800 text-teal-500 text-[10px]">
+                                  {(p.email || p.full_name)?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 overflow-hidden">
+                                <h4 className={cn("text-xs font-medium truncate group-hover:text-teal-500 transition-colors", theme === 'dark' ? "text-slate-200" : "text-slate-900")}>
+                                  {p.full_name}
+                                </h4>
+                                <p className="text-[9px] text-slate-500 truncate">{p.university || p.work || 'Scholar'}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {connections.following.length > 5 && (
+                            <Button variant="link" size="sm" className="p-0 h-auto text-teal-500 text-[10px]" onClick={() => navigate('/connections')}>
+                              See all following
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-slate-500 italic">Not following anyone yet.</p>
+                      )}
+                    </div>
+
+                    <div className="h-[1px] w-full bg-slate-100 dark:bg-white/5" />
+
+                    <div className="space-y-4">
+                      <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Followers ({connections.followers.length})</h3>
+                      {connections.followers.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3">
+                          {connections.followers.slice(0, 5).map((p) => (
+                            <div 
+                              key={p.id} 
+                              className="flex items-center gap-3 group cursor-pointer"
+                              onClick={() => navigate(`/profile/${p.id}`)}
+                            >
+                              <Avatar className="h-8 w-8 border border-teal-500/10">
+                                <AvatarImage src={p.avatar_url} />
+                                <AvatarFallback className="bg-slate-800 text-teal-500 text-[10px]">
+                                  {(p.email || p.full_name)?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 overflow-hidden">
+                                <h4 className={cn("text-xs font-medium truncate group-hover:text-teal-400 transition-colors", theme === 'dark' ? "text-slate-200" : "text-slate-900")}>
+                                  {p.full_name}
+                                </h4>
+                                <p className="text-[9px] text-slate-500 truncate">{p.university || p.work || 'Scholar'}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-slate-500 italic">No followers yet.</p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

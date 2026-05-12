@@ -92,4 +92,7 @@ export type UserProfile = {
   email: string;
   phone?: string;
   bio?: string;
+  university?: string;
+  work?: string;
+  location?: string;
 };

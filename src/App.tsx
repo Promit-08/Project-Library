@@ -9,6 +9,7 @@ import { UploadProject } from './pages/UploadProject';
 import { Projects } from './pages/Projects';
 import { Notifications } from './pages/Notifications';
 import { ProjectResearch } from './pages/ProjectResearch';
+import { Connections } from './pages/Connections';
 
 import { ThemeProvider, useTheme } from './components/ThemeProvider';
 import { Settings as SettingsPage } from './pages/Settings';
@@ -54,6 +55,11 @@ function AppContent() {
               <Profile />
             </ProtectedRoute>
           } />
+          <Route path="/profile/:userId" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
           <Route path="/upload" element={
             <ProtectedRoute>
               <UploadProject />
@@ -72,6 +78,11 @@ function AppContent() {
           <Route path="/research" element={
             <ProtectedRoute>
               <ProjectResearch />
+            </ProtectedRoute>
+          } />
+          <Route path="/connections" element={
+            <ProtectedRoute>
+              <Connections />
             </ProtectedRoute>
           } />
           <Route path="/settings" element={
