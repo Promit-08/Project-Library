@@ -151,7 +151,7 @@ const modalSteps = [
     { message: "Signing you up...", icon: <Loader className="w-12 h-12 text-primary animate-spin" /> },
     { message: "Onboarding you...", icon: <Loader className="w-12 h-12 text-primary animate-spin" /> },
     { message: "Finalizing...", icon: <Loader className="w-12 h-12 text-primary animate-spin" /> },
-    { message: "Welcome Aboard!", icon: <PartyPopper className="w-12 h-12 text-green-500" /> }
+    { message: "Success!", icon: <PartyPopper className="w-12 h-12 text-green-500" /> }
 ];
 const TEXT_LOOP_INTERVAL = 1.5;
 
@@ -315,7 +315,9 @@ React.useEffect(() => {
                             <div className="p-4 rounded-full bg-green-500/20 border border-green-500/50">
                                 {modalSteps[modalSteps.length - 1].icon}
                             </div>
-                            <p className="text-xl font-bold text-white tracking-tight">{modalSteps[modalSteps.length - 1].message}</p>
+                            <p className="text-xl font-bold text-white tracking-tight">
+                                {isLoginFlow ? "Welcome Back!" : "Confirm email"}
+                            </p>
                         </div>
                     }
                 </motion.div>
