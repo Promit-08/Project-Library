@@ -150,7 +150,7 @@ export function SessionNavBar() {
           "sidebar fixed left-0 z-40 h-full shrink-0 border-r backdrop-blur-xl transition-all duration-500 hidden lg:block",
           theme === 'dark' 
             ? "border-white/5 bg-slate-950/50 text-slate-400" 
-            : "border-slate-200 bg-white/80 text-slate-500"
+            : "border-slate-300 bg-white/95 text-slate-600 shadow-[4px_0_24px_rgba(0,0,0,0.05)]"
         )}
         initial={isCollapsed ? "closed" : "open"}
         animate={isCollapsed ? "closed" : "open"}
@@ -192,8 +192,8 @@ export function SessionNavBar() {
                   className={cn(
                     "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
                     pathname === "/" 
-                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
-                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-500 text-white scale-[1.02] shadow-md shadow-teal-500/20") 
+                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")
                   )}
                 >
                   <Home className="h-5 w-5 shrink-0" />
@@ -207,8 +207,8 @@ export function SessionNavBar() {
                   className={cn(
                     "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
                     pathname.startsWith("/projects") 
-                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
-                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-500 text-white scale-[1.02] shadow-md shadow-teal-500/20") 
+                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")
                   )}
                 >
                   <FolderKanban className="h-5 w-5 shrink-0" />
@@ -222,8 +222,8 @@ export function SessionNavBar() {
                   className={cn(
                     "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
                     pathname === "/connections" 
-                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
-                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-500 text-white scale-[1.02] shadow-md shadow-teal-500/20") 
+                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")
                   )}
                 >
                   <Users className="h-5 w-5 shrink-0" />
@@ -237,8 +237,8 @@ export function SessionNavBar() {
                   className={cn(
                     "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
                     pathname === "/research" 
-                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
-                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-500 text-white scale-[1.02] shadow-md shadow-teal-500/20") 
+                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")
                   )}
                 >
                   <Video className="h-5 w-5 shrink-0" />
@@ -252,8 +252,8 @@ export function SessionNavBar() {
                   className={cn(
                     "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
                     pathname === "/upload" 
-                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
-                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-500 text-white scale-[1.02] shadow-md shadow-teal-500/20") 
+                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")
                   )}
                 >
                   <Upload className="h-5 w-5 shrink-0" />
@@ -269,8 +269,8 @@ export function SessionNavBar() {
                   className={cn(
                     "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200 relative",
                     pathname === "/notifications" 
-                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
-                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                      ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-500 text-white scale-[1.02] shadow-md shadow-teal-500/20") 
+                      : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")
                   )}
                 >
                   <div className="relative">
@@ -306,8 +306,8 @@ export function SessionNavBar() {
               className={cn(
                 "flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
                 pathname === "/settings" 
-                  ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-50/80 text-teal-600 scale-[1.02] shadow-sm") 
-                  : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900")
+                  ? (theme === 'dark' ? "bg-teal-500/10 text-teal-400" : "bg-teal-500 text-white scale-[1.02] shadow-md shadow-teal-500/20") 
+                  : (theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")
               )}
             >
               <Settings className="h-5 w-5 shrink-0" />
@@ -320,7 +320,7 @@ export function SessionNavBar() {
               <DropdownMenuTrigger asChild>
                 <button className={cn(
                   "group flex h-10 w-full items-center gap-3 rounded-lg px-3 transition-all duration-200",
-                  theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  theme === 'dark' ? "text-slate-400 hover:bg-white/5 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
                 )}>
                   <Avatar className="h-6 w-6 border border-white/10 ring-2 ring-teal-500/20">
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}

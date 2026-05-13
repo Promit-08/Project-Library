@@ -119,27 +119,43 @@ export function Profile() {
     try {
       setLoadingConnections(true);
       
-      // Fetch following
-      const { data: followingData } = await supabase
+      // Fetch following (people this user follows)
+      const { data: followingFollows, error: followingError } = await supabase
         .from('follows')
-        .select(`
-          followed_id,
-          profiles:followed_id (id, full_name, username, avatar_url, university, work, email)
-        `)
+        .select('followed_id')
         .eq('follower_id', targetUserId);
 
-      // Fetch followers
-      const { data: followersData } = await supabase
+      if (followingError) console.error('Following fetch error:', followingError);
+
+      // Fetch followers (people who follow this user)
+      const { data: followersFollows, error: followersError } = await supabase
         .from('follows')
-        .select(`
-          follower_id,
-          profiles:follower_id (id, full_name, username, avatar_url, university, work, email)
-        `)
+        .select('follower_id')
         .eq('followed_id', targetUserId);
 
+      if (followersError) console.error('Followers fetch error:', followersError);
+
+      const followingIds = followingFollows?.map(f => f.followed_id) || [];
+      const followersIds = followersFollows?.map(f => f.follower_id) || [];
+
+      // Fetch profiles for both
+      const allIds = [...new Set([...followingIds, ...followersIds])];
+      let profilesMap: Record<string, any> = {};
+
+      if (allIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, university, work, email')
+          .in('id', allIds);
+        
+        profilesData?.forEach(p => {
+          profilesMap[p.id] = p;
+        });
+      }
+
       setConnections({
-        following: followingData?.map((f: any) => f.profiles) || [],
-        followers: followersData?.map((f: any) => f.profiles) || []
+        following: followingIds.map(id => profilesMap[id] || { id, full_name: 'Mysterious Scholar', role: 'Anonymous' }),
+        followers: followersIds.map(id => profilesMap[id] || { id, full_name: 'Mysterious Scholar', role: 'Anonymous' })
       });
     } catch (err) {
       console.error('Error fetching connections:', err);
@@ -389,6 +405,84 @@ export function Profile() {
     }
   };
 
+  const [showFollowersModal, setShowFollowersModal] = React.useState(false);
+  const [showFollowingModal, setShowFollowingModal] = React.useState(false);
+
+  const ConnectionModal = ({ 
+    isOpen, 
+    onClose, 
+    title, 
+    users 
+  }: { 
+    isOpen: boolean; 
+    onClose: () => void; 
+    title: string; 
+    users: any[] 
+  }) => (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className={cn(
+              "relative w-full max-w-md max-h-[70vh] overflow-hidden rounded-3xl border shadow-2xl flex flex-col",
+              theme === 'dark' ? "bg-slate-900 border-white/10" : "bg-white border-slate-200"
+            )}
+          >
+            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <h3 className="text-xl font-serif italic text-teal-500">{title}</h3>
+              <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full h-8 w-8 p-0">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              {users.length === 0 ? (
+                <p className={cn("text-center py-8 italic transition-colors", theme === 'dark' ? "text-slate-500" : "text-slate-700")}>No connections found.</p>
+              ) : (
+                users.map((p) => (
+                  <div 
+                    key={p.id} 
+                    className={cn(
+                      "flex items-center gap-4 p-3 rounded-2xl transition-all cursor-pointer group",
+                      theme === 'dark' ? "hover:bg-white/5" : "hover:bg-slate-50"
+                    )}
+                    onClick={() => {
+                      onClose();
+                      navigate(`/profile/${p.id}`);
+                    }}
+                  >
+                    <Avatar className="h-12 w-12 border border-teal-500/10">
+                      <AvatarImage src={p.avatar_url} />
+                      <AvatarFallback className="bg-slate-800 text-teal-500 text-lg">
+                        {(p.email || p.full_name)?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                      <h4 className={cn("font-medium truncate group-hover:text-teal-500 transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                        {p.full_name}
+                      </h4>
+                      <p className={cn("text-xs truncate transition-colors", theme === 'dark' ? "text-slate-500" : "text-slate-600")}>{p.university || p.work || 'Scholar'}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   if (loading) {
     return (
       <div className={cn(
@@ -544,7 +638,7 @@ export function Profile() {
                   )}
                   
                   <div className="flex justify-center md:justify-start gap-2">
-                    {!isOwnProfile && authUser ? (
+                    {authUser && !isOwnProfile && (
                       <Button
                         onClick={toggleFollow}
                         disabled={followLoading}
@@ -563,7 +657,9 @@ export function Profile() {
                           <span className="flex items-center gap-2"><UserPlus className="w-4 h-4" /> Follow</span>
                         )}
                       </Button>
-                    ) : (
+                    )}
+                    
+                    {isOwnProfile && authUser && (
                       <>
                         {(isEditing || previewUrl) ? (
                           <>
@@ -616,25 +712,25 @@ export function Profile() {
                 <div className="flex flex-wrap justify-center md:justify-start gap-6 text-sm">
                   <div className="flex flex-col items-center md:items-start">
                     <span className={cn("font-bold text-xl", theme === 'dark' ? "text-white" : "text-slate-900")}>{projectCount}</span>
-                    <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Projects</span>
+                    <span className={cn("uppercase tracking-widest text-[10px] font-bold", theme === 'dark' ? "text-slate-500" : "text-slate-600")}>Projects</span>
                   </div>
-                  <div className={cn("h-8 w-[1px] mx-2 hidden sm:block", theme === 'dark' ? "bg-white/5" : "bg-slate-200")} />
+                  <div className={cn("h-8 w-[1px] mx-2 hidden sm:block", theme === 'dark' ? "bg-white/5" : "bg-slate-300")} />
                   <div className="flex flex-col items-center md:items-start">
                     <span className={cn("font-bold text-xl", theme === 'dark' ? "text-white" : "text-slate-900")}>{followersCount}</span>
-                    <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Followers</span>
+                    <span className={cn("uppercase tracking-widest text-[10px] font-bold", theme === 'dark' ? "text-slate-500" : "text-slate-600")}>Followers</span>
                   </div>
-                  <div className={cn("h-8 w-[1px] mx-2 hidden sm:block", theme === 'dark' ? "bg-white/5" : "bg-slate-200")} />
+                  <div className={cn("h-8 w-[1px] mx-2 hidden sm:block", theme === 'dark' ? "bg-white/5" : "bg-slate-300")} />
                   <div className="flex flex-col items-center md:items-start">
                     <span className={cn("font-bold text-xl", theme === 'dark' ? "text-white" : "text-slate-900")}>{followingCount}</span>
-                    <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Following</span>
+                    <span className={cn("uppercase tracking-widest text-[10px] font-bold", theme === 'dark' ? "text-slate-500" : "text-slate-600")}>Following</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Bio section */}
-            <div className={cn("mt-12 border-t pt-8 transition-colors", theme === 'dark' ? "border-white/5" : "border-slate-100")}>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+            <div className={cn("mt-12 border-t pt-8 transition-colors", theme === 'dark' ? "border-white/5" : "border-slate-300")}>
+              <h3 className={cn("text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2", theme === 'dark' ? "text-slate-500" : "text-slate-600")}>
                 <User className="w-3 h-3" /> About Me
               </h3>
               {isEditing ? (
@@ -651,12 +747,12 @@ export function Profile() {
                 <div className="group flex flex-col items-start gap-3">
                   <p className={cn(
                     "leading-relaxed font-light italic transition-colors",
-                    theme === 'dark' ? "text-slate-300" : "text-slate-600",
+                    theme === 'dark' ? "text-slate-300" : "text-slate-700",
                     !profile?.bio && "text-slate-500"
                   )}>
-                    {profile?.bio || 'You haven\'t added a bio yet. Click the edit icon or "Add bio" below to tell the world about your academic journey.'}
+                    {profile?.bio || (isOwnProfile ? 'You haven\'t added a bio yet. Click the edit icon or "Add bio" below to tell the world about your academic journey.' : 'This scholar hasn\'t shared a bio yet.')}
                   </p>
-                  {!profile?.bio && (
+                  {isOwnProfile && !profile?.bio && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -754,7 +850,7 @@ export function Profile() {
                 "text-2xl font-serif italic flex items-center gap-3 transition-colors",
                 theme === 'dark' ? "text-white" : "text-slate-900"
               )}>
-                My Archive
+                {isOwnProfile ? "My Archive" : `${profile?.full_name?.split(' ')[0] || 'Scholar'}'s Archive`}
                 <div className={cn("h-[1px] flex-1 bg-gradient-to-r", theme === 'dark' ? "from-white/10 to-transparent" : "from-slate-200 to-transparent")} />
               </h2>
               
@@ -767,10 +863,12 @@ export function Profile() {
                   "backdrop-blur-sm border p-12 rounded-2xl text-center transition-colors",
                   theme === 'dark' ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200"
                 )}>
-                  <p className="text-slate-500 italic">No projects submitted yet.</p>
-                  <Button variant="link" className="mt-2 text-teal-500" onClick={() => navigate('/upload-project')}>
-                    Submit your first project
-                  </Button>
+                  <p className="text-slate-500 italic">{isOwnProfile ? "No projects submitted yet." : "This scholar hasn't shared any projects yet."}</p>
+                  {isOwnProfile && (
+                    <Button variant="link" className="mt-2 text-teal-500" onClick={() => navigate('/upload-project')}>
+                      Submit your first project
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
@@ -779,8 +877,9 @@ export function Profile() {
                       key={project.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
+                      onClick={() => navigate(`/projects?id=${project.id}`)}
                       className={cn(
-                        "group p-6 rounded-2xl border transition-all flex items-center justify-between",
+                        "group p-6 rounded-2xl border transition-all flex items-center justify-between cursor-pointer",
                         theme === 'dark' ? "bg-white/5 border-white/5 hover:bg-white/10" : "bg-white border-slate-200 hover:shadow-md hover:border-teal-500/20"
                       )}
                     >
@@ -823,7 +922,7 @@ export function Profile() {
               </h2>
               
               <div className={cn(
-                "backdrop-blur-sm border p-6 rounded-2xl transition-colors space-y-6",
+                "backdrop-blur-sm border p-6 rounded-2xl transition-colors space-y-6 sticky top-24",
                 theme === 'dark' ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200 shadow-sm"
               )}>
                 {loadingConnections ? (
@@ -833,10 +932,21 @@ export function Profile() {
                 ) : (
                   <>
                     <div className="space-y-4">
-                      <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Following ({connections.following.length})</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Following ({connections.following.length})</h3>
+                        {connections.following.length > 5 && (
+                          <button 
+                            onClick={() => setShowFollowingModal(true)}
+                            className="text-[10px] font-bold text-teal-500 hover:text-teal-400 transition-colors uppercase tracking-wider"
+                          >
+                            See all
+                          </button>
+                        )}
+                      </div>
+                      
                       {connections.following.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-3">
-                          {connections.following.slice(0, 5).map((p) => (
+                        <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                          {connections.following.slice(0, 8).map((p) => (
                             <div 
                               key={p.id} 
                               className="flex items-center gap-3 group cursor-pointer"
@@ -856,24 +966,30 @@ export function Profile() {
                               </div>
                             </div>
                           ))}
-                          {connections.following.length > 5 && (
-                            <Button variant="link" size="sm" className="p-0 h-auto text-teal-500 text-[10px]" onClick={() => navigate('/connections')}>
-                              See all following
-                            </Button>
-                          )}
                         </div>
                       ) : (
-                        <p className="text-[10px] text-slate-500 italic">Not following anyone yet.</p>
+                        <p className="text-[10px] text-slate-500 italic py-2">Not following anyone yet.</p>
                       )}
                     </div>
 
                     <div className="h-[1px] w-full bg-slate-100 dark:bg-white/5" />
 
                     <div className="space-y-4">
-                      <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Followers ({connections.followers.length})</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Followers ({connections.followers.length})</h3>
+                        {connections.followers.length > 5 && (
+                          <button 
+                            onClick={() => setShowFollowersModal(true)}
+                            className="text-[10px] font-bold text-teal-500 hover:text-teal-400 transition-colors uppercase tracking-wider"
+                          >
+                            See all
+                          </button>
+                        )}
+                      </div>
+
                       {connections.followers.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-3">
-                          {connections.followers.slice(0, 5).map((p) => (
+                        <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                          {connections.followers.slice(0, 8).map((p) => (
                             <div 
                               key={p.id} 
                               className="flex items-center gap-3 group cursor-pointer"
@@ -895,7 +1011,7 @@ export function Profile() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[10px] text-slate-500 italic">No followers yet.</p>
+                        <p className="text-[10px] text-slate-500 italic py-2">No followers yet.</p>
                       )}
                     </div>
                   </>
@@ -905,6 +1021,20 @@ export function Profile() {
           </div>
         </main>
       </div>
+
+      {/* Modals */}
+      <ConnectionModal 
+        isOpen={showFollowersModal} 
+        onClose={() => setShowFollowersModal(false)} 
+        title="Followers" 
+        users={connections.followers} 
+      />
+      <ConnectionModal 
+        isOpen={showFollowingModal} 
+        onClose={() => setShowFollowingModal(false)} 
+        title="Following" 
+        users={connections.following} 
+      />
     </div>
   );
 }

@@ -84,7 +84,7 @@ export function Home() {
         />
         <div className={cn(
           "absolute inset-0 z-0 bg-gradient-to-b transition-colors duration-500",
-          theme === 'dark' ? "from-slate-950/50 via-transparent to-slate-950" : "from-white/40 via-white/20 to-white"
+          theme === 'dark' ? "from-slate-950/50 via-transparent to-slate-950" : "from-white/90 via-white/40 to-white"
         )} />
 
         {/* Main Content */}
@@ -109,7 +109,8 @@ export function Home() {
               </h1>
               
               <p className={cn(
-                "text-lg md:text-xl font-light leading-relaxed mb-12 max-w-2xl transition-colors text-slate-500"
+                "text-lg md:text-xl font-light leading-relaxed mb-12 max-w-2xl transition-colors",
+                theme === 'dark' ? "text-slate-400" : "text-slate-700"
               )}>
                 Access your scholarly collection, discover groundbreaking research from peers, and contribute to the expanding universe of undergraduate innovation.
               </p>

@@ -34,7 +34,10 @@ export function ProjectResearch() {
     if (!searchQuery.trim()) return;
 
     if (!API_KEY) {
-      setError("YouTube API Key is missing. Please add VITE_YOUTUBE_API_KEY to your environment settings.");
+      setError(
+        "YouTube API Key is missing. Please add VITE_YOUTUBE_API_KEY to your environment settings. " +
+        "You can get one from the Google Cloud Console (YouTube Data API v3)."
+      );
       return;
     }
 
@@ -129,13 +132,51 @@ export function ProjectResearch() {
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-6 rounded-2xl flex items-start gap-4"
+                className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-8 rounded-3xl flex flex-col items-center text-center gap-4"
               >
-                <Info className="w-6 h-6 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold mb-1">Search Error</p>
-                  <p className="text-sm opacity-80">{error}</p>
+                <div className="bg-rose-500/20 p-4 rounded-full">
+                  <Info className="w-8 h-8" />
                 </div>
+                <div>
+                  <p className="text-xl font-bold mb-2">YouTube API Configuration Required</p>
+                  <p className="text-sm opacity-90 max-w-lg mx-auto mb-6">
+                    {error}
+                  </p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
+                    <div className={cn(
+                      "p-4 rounded-2xl border",
+                      theme === 'dark' ? "bg-slate-900/50 border-white/10" : "bg-slate-50 border-slate-200 shadow-sm transition-colors"
+                    )}>
+                      <h4 className="font-bold text-xs uppercase tracking-widest text-teal-500 mb-2">1. Get API Key</h4>
+                      <p className="text-[11px] text-slate-500 mb-3">Enable 'YouTube Data API v3' in Google Cloud Console and create an API Key.</p>
+                      <Button 
+                        size="sm" 
+                        variant="link" 
+                        className="p-0 h-auto text-teal-400 group h-auto"
+                        onClick={() => window.open('https://console.cloud.google.com/apis/library/youtube.googleapis.com', '_blank')}
+                      >
+                        Cloud Console <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </div>
+
+                    <div className={cn(
+                      "p-4 rounded-2xl border",
+                      theme === 'dark' ? "bg-slate-900/50 border-white/10" : "bg-slate-50 border-slate-200 shadow-sm transition-colors"
+                    )}>
+                      <h4 className="font-bold text-xs uppercase tracking-widest text-teal-500 mb-2">2. Add to Vercel</h4>
+                      <p className="text-[11px] text-slate-500 mb-3">Go to Vercel Settings → Environment Variables and add <code className="bg-slate-800 text-teal-300 px-1 rounded">VITE_YOUTUBE_API_KEY</code>.</p>
+                      <p className="text-[9px] text-slate-500 italic">Redeploy your project after saving.</p>
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => setError(null)}
+                  variant="ghost"
+                  className="mt-2 text-xs text-slate-500 hover:text-slate-300"
+                >
+                  Dismiss
+                </Button>
               </motion.div>
             )}
     

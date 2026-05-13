@@ -4,6 +4,7 @@ import { useAuth } from '../components/AuthProvider';
 import { createNotification } from '../services/notificationService';
 import { motion, AnimatePresence } from 'motion/react';
 import { SessionNavBar } from '../components/ui/sidebar';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Heart, 
   MessageSquare, 
@@ -65,11 +66,27 @@ export function Projects() {
   const [selectedCategory, setSelectedCategory] = React.useState('All');
   const [expandedProjectId, setExpandedProjectId] = React.useState<string | null>(null);
 
+  const [searchParams] = useSearchParams();
+  const projectIdParam = searchParams.get('id');
+
   const categories = ['All', 'Computer Science', 'Mechanical Engineering', 'Digital Media', 'Architecture', 'Psychology', 'Business', 'Arts', 'Other'];
 
   React.useEffect(() => {
     fetchProjects();
   }, [user]);
+
+  React.useEffect(() => {
+    if (projectIdParam) {
+      setExpandedProjectId(projectIdParam);
+      // Optional: Scroll to the project card after a small delay to allow for loading
+      setTimeout(() => {
+        const element = document.getElementById(`project-${projectIdParam}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 800);
+    }
+  }, [projectIdParam, projects]);
 
   const fetchProjects = async () => {
     try {
@@ -150,8 +167,11 @@ export function Projects() {
             </motion.div>
 
             <div className="space-y-10">
-              <div className="relative group w-full max-w-2xl">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-teal-500 transition-colors z-10" />
+            <div className="relative group w-full max-w-2xl">
+                <Search className={cn(
+                  "absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors z-10",
+                  theme === 'dark' ? "text-slate-500 group-focus-within:text-teal-500" : "text-slate-400 group-focus-within:text-teal-600"
+                )} />
                 <input 
                   type="text"
                   placeholder="Search project titles, keywords..."
@@ -159,7 +179,7 @@ export function Projects() {
                     "w-full border rounded-2xl pl-12 pr-24 sm:pr-32 py-4 sm:py-5 outline-none focus:ring-2 focus:ring-teal-500/50 transition-all shadow-2xl font-sans text-sm sm:text-base",
                     theme === 'dark' 
                       ? "bg-slate-900/50 border-white/10 text-white placeholder:text-slate-700 focus:bg-slate-900" 
-                      : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+                      : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 shadow-slate-200/50"
                   )}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -176,7 +196,10 @@ export function Projects() {
               </div>
               
               <div className="flex flex-col gap-4">
-                <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-500 ml-1">Discipline Gallery</span>
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-[0.4em] ml-1",
+                  theme === 'dark' ? "text-slate-500" : "text-slate-600"
+                )}>Discipline Gallery</span>
                 <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-none w-full items-center -mx-4 px-4 sm:mx-0 sm:px-0">
                   {categories.map(cat => (
                     <button
@@ -186,7 +209,7 @@ export function Projects() {
                         "px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border shrink-0",
                         selectedCategory === cat 
                           ? "bg-teal-500 text-white border-teal-500 shadow-lg shadow-teal-500/20" 
-                          : (theme === 'dark' ? "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50")
+                          : (theme === 'dark' ? "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100")
                       )}
                     >
                       {cat}
@@ -218,6 +241,7 @@ export function Projects() {
               {filteredProjects.map((project) => (
                 <ProjectCard 
                   key={project.id} 
+                  id={`project-${project.id}`}
                   project={project} 
                   isExpanded={expandedProjectId === project.id}
                   onToggleExpand={() => setExpandedProjectId(expandedProjectId === project.id ? null : project.id)}
@@ -236,13 +260,15 @@ function ProjectCard({
   project, 
   isExpanded, 
   onToggleExpand, 
-  onUpdate 
+  onUpdate,
+  id
 }: { 
   project: ProjectWithInteractions; 
   isExpanded: boolean; 
   onToggleExpand: () => void;
   onUpdate: () => void | Promise<void>;
   key?: React.Key;
+  id?: string;
 }) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -253,6 +279,7 @@ function ProjectCard({
   const [interactionLoading, setInteractionLoading] = React.useState(false);
   const [viewerProfile, setViewerProfile] = React.useState<UserProfile | null>(null);
   const [creatorProfile, setCreatorProfile] = React.useState<UserProfile | null>(null);
+  const [shareFeedback, setShareFeedback] = React.useState(false);
   const commentsSectionRef = React.useRef<HTMLDivElement>(null);
 
   const scrollToComments = () => {
@@ -303,6 +330,35 @@ function ProjectCard({
       if (data) setCreatorProfile(data);
     } catch (err) {
       console.error('Error fetching creator profile:', err);
+    }
+  };
+  
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/projects?id=${project.id}`;
+    const shareData = {
+      title: project.title,
+      text: `Check out this project: ${project.title}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareFeedback(true);
+        setTimeout(() => setShareFeedback(false), 2000);
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+      // Even if navigator.share fails, try clipboard as final fallback
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareFeedback(true);
+        setTimeout(() => setShareFeedback(false), 2000);
+      } catch (clipErr) {
+        console.error('Clipboard error:', clipErr);
+      }
     }
   };
 
@@ -527,6 +583,7 @@ function ProjectCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
+      id={id}
       className={cn(
         "backdrop-blur-xl border rounded-[2rem] overflow-hidden group hover:border-teal-500/30 transition-all duration-500 shadow-2xl relative",
         theme === 'dark' ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200"
@@ -594,7 +651,7 @@ function ProjectCard({
             
             <p className={cn(
               "text-xs sm:text-sm leading-relaxed max-w-2xl line-clamp-2 sm:line-clamp-3 italic font-light font-sans mb-6 sm:mb-8 transition-colors",
-              theme === 'dark' ? "text-slate-400" : "text-slate-500"
+              theme === 'dark' ? "text-slate-400" : "text-slate-600"
             )}>
               "{project.description}"
             </p>
@@ -636,11 +693,14 @@ function ProjectCard({
               onClick={scrollToComments}
               className={cn(
                 "flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-all group/stat cursor-pointer",
-                theme === 'dark' ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+                theme === 'dark' ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-100 border-slate-300 hover:bg-slate-200"
               )}
             >
-              <MessageSquare className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-slate-500 group-hover/stat:text-teal-500 transition-colors" />
-              <span className={cn("text-[10px] sm:text-[11px] font-bold transition-colors", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>
+              <MessageSquare className={cn(
+                "w-3 sm:w-3.5 h-3 sm:h-3.5 transition-colors",
+                theme === 'dark' ? "text-slate-500 group-hover/stat:text-teal-500" : "text-slate-500 group-hover/stat:text-teal-600"
+              )} />
+              <span className={cn("text-[10px] sm:text-[11px] font-bold transition-colors", theme === 'dark' ? "text-slate-400" : "text-slate-700")}>
                 {project.comments_count} <span className="hidden sm:inline font-light opacity-50 ml-1">Insights</span>
               </span>
             </button>
@@ -706,9 +766,8 @@ function ProjectCard({
                 <div className="flex flex-wrap gap-2">
                   <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500 w-full mb-2">Subject Tags</h4>
                   {project.tags?.map(tag => (
-                    <div key={tag} className={cn(
-                      "inline-flex items-center rounded-full border px-3 sm:px-4 py-1 text-[10px] sm:text-xs font-semibold focus:outline-none transition-all",
-                      theme === 'dark' ? "bg-white/5 text-slate-400 border-white/5" : "bg-white text-slate-500 border-slate-200"
+                    <div className={cn("inline-flex items-center rounded-full border px-3 sm:px-4 py-1 text-[10px] sm:text-xs font-semibold focus:outline-none transition-all",
+                      theme === 'dark' ? "bg-white/5 text-slate-400 border-white/5" : "bg-white text-slate-600 border-slate-300"
                     )}>
                       #{tag}
                     </div>
@@ -802,7 +861,7 @@ function ProjectCard({
                               <div className="flex items-center justify-between mb-1">
                                 <div className="flex items-center gap-2">
                                   <span className={cn("text-xs font-bold", theme === 'dark' ? "text-white" : "text-slate-900")}>@{comment.user_name}</span>
-                                  <span className="text-[10px] text-slate-600 font-medium">
+                                  <span className={cn("text-[10px] font-medium", theme === 'dark' ? "text-slate-600" : "text-slate-500")}>
                                     {new Date(comment.created_at).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -816,7 +875,7 @@ function ProjectCard({
                                   </button>
                                 )}
                               </div>
-                              <p className={cn("text-sm font-light leading-relaxed transition-colors", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>
+                              <p className={cn("text-sm font-light leading-relaxed transition-colors", theme === 'dark' ? "text-slate-400" : "text-slate-700")}>
                                 {comment.content}
                               </p>
                             </div>
@@ -862,11 +921,37 @@ function ProjectCard({
                     </div>
                   </div>
 
-                  <Button variant="outline" className={cn(
-                    "w-full rounded-xl gap-2 h-10 text-xs font-bold uppercase tracking-widest transition-all",
-                    theme === 'dark' ? "border-white/10 text-white hover:bg-white/10" : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                  )}>
-                    <Share2 className="w-3 h-3" /> Share Project
+                  <Button 
+                    variant="outline" 
+                    onClick={handleShare}
+                    className={cn(
+                      "w-full rounded-xl gap-2 h-10 text-xs font-bold uppercase tracking-widest transition-all relative overflow-hidden",
+                      theme === 'dark' ? "border-white/10 text-white hover:bg-white/10" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <AnimatePresence mode="wait">
+                      {shareFeedback ? (
+                        <motion.span 
+                          key="copied"
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: -20, opacity: 0 }}
+                          className="flex items-center gap-2 text-teal-500"
+                        >
+                          <Send className="w-3 h-3" /> Link Copied!
+                        </motion.span>
+                      ) : (
+                        <motion.span 
+                          key="share"
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: -20, opacity: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Share2 className="w-3 h-3" /> Share Project
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </Button>
                 </div>
                 

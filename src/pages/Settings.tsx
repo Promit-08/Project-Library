@@ -273,7 +273,7 @@ export function Settings() {
                     className="bg-teal-500 hover:bg-teal-400 text-white rounded-xl px-8 h-12 gap-2"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    Update Security Key
+                    Update Password
                   </Button>
                 </div>
               </form>

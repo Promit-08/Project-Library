@@ -12,8 +12,8 @@ ADD COLUMN IF NOT EXISTS bio TEXT;
 -- 2. Create Follows table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.follows (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    follower_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    followed_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    follower_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    followed_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     UNIQUE(follower_id, followed_id)
 );
