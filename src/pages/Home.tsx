@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/ThemeProvider';
 import { cn } from '../lib/utils';
 
+import { Layout } from '../components/Layout';
+
 export function Home() {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -66,14 +68,8 @@ export function Home() {
   const displayName = profile?.full_name || user?.email?.split('@')[0];
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full font-sans transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      {/* Sidebar */}
-      <SessionNavBar />
-
-      <div className="relative flex flex-1 flex-col lg:pl-[4.5rem] pb-16 lg:pb-0">
+    <Layout>
+      <div className="relative flex-1">
         {/* Background Image with Overlay */}
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
@@ -147,10 +143,15 @@ export function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 + (i * 0.1) }}
                   className={cn(
-                    "p-8 rounded-[2rem] border backdrop-blur-md transition-all duration-500 group cursor-default shadow-2xl hover:border-teal-500/20",
-                    theme === 'dark' ? "bg-slate-900/40 border-white/5 hover:bg-slate-900/60" : "bg-white/80 border-slate-200 hover:bg-white"
+                    "p-8 rounded-[2rem] border backdrop-blur-md transition-all duration-500 group cursor-default shadow-2xl relative overflow-hidden",
+                    theme === 'dark' 
+                      ? "bg-slate-900/40 border-white/5 hover:bg-slate-900/60 hover:border-teal-500/30" 
+                      : "bg-white border-slate-200 hover:bg-slate-50 hover:border-teal-500/20"
                   )}
                 >
+                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <stat.icon className="w-24 h-24" />
+                  </div>
                   {stats.loading ? (
                     <Loader2 className="h-6 w-6 text-slate-700 animate-spin mb-4" />
                   ) : (
@@ -172,12 +173,13 @@ export function Home() {
         </main>
 
         {/* Decorative Quote */}
-        <footer className={cn(
+        <div className={cn(
           "relative z-10 w-full px-6 py-8 text-center transition-colors text-slate-400 font-light"
         )}>
           <p className="text-[10px] font-medium tracking-[0.2em] uppercase transition-colors">"The only thing that you absolutely have to know, is the location of the library." — Albert Einstein</p>
-        </footer>
+        </div>
       </div>
-    </div>
+    </Layout>
+
   );
 }

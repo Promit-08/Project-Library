@@ -27,7 +27,8 @@ import {
   Send,
   FileText,
   AlignLeft,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
@@ -56,6 +57,8 @@ interface ProjectWithInteractions extends Project {
 }
 
 import { useTheme } from '../components/ThemeProvider';
+
+import { Layout } from '../components/Layout';
 
 export function Projects() {
   const { user } = useAuth();
@@ -137,122 +140,113 @@ export function Projects() {
   });
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full font-sans transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      <SessionNavBar />
+    <Layout>
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+        <header className="mb-10 lg:mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3 mb-10"
+          >
+            <h1 className={cn(
+              "text-3xl sm:text-5xl lg:text-6xl font-serif italic mb-2 tracking-tight transition-colors",
+              theme === 'dark' ? "text-white" : "text-slate-900"
+            )}>Community Library</h1>
+            <p className={cn(
+              "font-light max-w-xl transition-colors text-sm sm:text-lg leading-relaxed",
+              theme === 'dark' ? "text-slate-400" : "text-slate-600"
+            )}>
+              A curated sanctuary of academic excellence. Explore, peer-review, and discover groundbreaking research from scholors around the world.
+            </p>
+          </motion.div>
 
-      <div className={cn(
-        "flex-1 flex flex-col w-full min-h-screen transition-all duration-500",
-        "lg:pl-[4.5rem] pb-24 lg:pb-0"
-      )}>
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
-          <header className="mb-10 lg:mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-3 mb-10"
-            >
-              <h1 className={cn(
-                "text-3xl sm:text-5xl lg:text-6xl font-serif italic mb-2 tracking-tight transition-colors",
-                theme === 'dark' ? "text-white" : "text-slate-900"
-              )}>Community Library</h1>
-              <p className={cn(
-                "font-light max-w-xl transition-colors text-sm sm:text-lg leading-relaxed",
-                theme === 'dark' ? "text-slate-400" : "text-slate-600"
-              )}>
-                A curated sanctuary of academic excellence. Explore, peer-review, and discover groundbreaking research from scholors around the world.
-              </p>
-            </motion.div>
-
-            <div className="space-y-10">
-            <div className="relative group w-full max-w-2xl">
-                <Search className={cn(
-                  "absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors z-10",
-                  theme === 'dark' ? "text-slate-500 group-focus-within:text-teal-500" : "text-slate-400 group-focus-within:text-teal-600"
-                )} />
-                <input 
-                  type="text"
-                  placeholder="Search project titles, keywords..."
-                  className={cn(
-                    "w-full border rounded-2xl pl-12 pr-24 sm:pr-32 py-4 sm:py-5 outline-none focus:ring-2 focus:ring-teal-500/50 transition-all shadow-2xl font-sans text-sm sm:text-base",
-                    theme === 'dark' 
-                      ? "bg-slate-900/50 border-white/10 text-white placeholder:text-slate-700 focus:bg-slate-900" 
-                      : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 shadow-slate-200/50"
-                  )}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="rounded-xl bg-teal-500/10 text-teal-500 hover:bg-teal-500 hover:text-white px-4 sm:px-6 h-9 sm:h-11 text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all"
+          <div className="space-y-10">
+          <div className="relative group w-full max-w-2xl">
+              <Search className={cn(
+                "absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors z-10",
+                theme === 'dark' ? "text-slate-500 group-focus-within:text-teal-500" : "text-slate-400 group-focus-within:text-teal-600"
+              )} />
+              <input 
+                type="text"
+                placeholder="Search project titles, keywords..."
+                className={cn(
+                  "w-full border rounded-2xl pl-12 pr-24 sm:pr-32 py-4 sm:py-5 outline-none focus:ring-2 focus:ring-teal-500/50 transition-all shadow-2xl font-sans text-sm sm:text-base",
+                  theme === 'dark' 
+                    ? "bg-slate-900/50 border-white/10 text-white placeholder:text-slate-700 focus:bg-slate-900" 
+                    : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 shadow-slate-200/50"
+                )}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="rounded-xl bg-teal-500/10 text-teal-500 hover:bg-teal-500 hover:text-white px-4 sm:px-6 h-9 sm:h-11 text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all"
+                >
+                  Search
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              <span className={cn(
+                "text-[10px] font-bold uppercase tracking-[0.4em] ml-1",
+                theme === 'dark' ? "text-slate-500" : "text-slate-600"
+              )}>Discipline Gallery</span>
+              <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-none w-full items-center -mx-4 px-4 sm:mx-0 sm:px-0">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border shrink-0",
+                      selectedCategory === cat 
+                        ? "bg-teal-500 text-white border-teal-500 shadow-lg shadow-teal-500/20" 
+                        : (theme === 'dark' ? "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100")
+                    )}
                   >
-                    Search
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-4">
-                <span className={cn(
-                  "text-[10px] font-bold uppercase tracking-[0.4em] ml-1",
-                  theme === 'dark' ? "text-slate-500" : "text-slate-600"
-                )}>Discipline Gallery</span>
-                <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-none w-full items-center -mx-4 px-4 sm:mx-0 sm:px-0">
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={cn(
-                        "px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border shrink-0",
-                        selectedCategory === cat 
-                          ? "bg-teal-500 text-white border-teal-500 shadow-lg shadow-teal-500/20" 
-                          : (theme === 'dark' ? "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100")
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
+                    {cat}
+                  </button>
+                ))}
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader2 className="w-10 h-10 text-teal-500 animate-spin" />
-              <p className="text-slate-500 italic">Curating the finest projects for you...</p>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="w-10 h-10 text-teal-500 animate-spin" />
+            <p className="text-slate-500 italic">Curating the finest projects for you...</p>
+          </div>
+        ) : filteredProjects.length === 0 ? (
+          <div className="text-center py-20">
+            <div className={cn(
+              "h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6",
+              theme === 'dark' ? "bg-white/5" : "bg-slate-100"
+            )}>
+              <Search className="w-8 h-8 text-slate-700" />
             </div>
-          ) : filteredProjects.length === 0 ? (
-            <div className="text-center py-20">
-              <div className={cn(
-                "h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6",
-                theme === 'dark' ? "bg-white/5" : "bg-slate-100"
-              )}>
-                <Search className="w-8 h-8 text-slate-700" />
-              </div>
-              <h2 className={cn("text-xl font-medium mb-2", theme === 'dark' ? "text-white" : "text-slate-900")}>No projects found</h2>
-              <p className="text-slate-500">Try adjusting your search or category filters.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-8">
-              {filteredProjects.map((project) => (
-                <ProjectCard 
-                  key={project.id} 
-                  id={`project-${project.id}`}
-                  project={project} 
-                  isExpanded={expandedProjectId === project.id}
-                  onToggleExpand={() => setExpandedProjectId(expandedProjectId === project.id ? null : project.id)}
-                  onUpdate={fetchProjects}
-                />
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
+            <h2 className={cn("text-xl font-medium mb-2", theme === 'dark' ? "text-white" : "text-slate-900")}>No projects found</h2>
+            <p className="text-slate-500">Try adjusting your search or category filters.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-8">
+            {filteredProjects.map((project) => (
+              <ProjectCard 
+                key={project.id} 
+                id={`project-${project.id}`}
+                project={project} 
+                isExpanded={expandedProjectId === project.id}
+                onToggleExpand={() => setExpandedProjectId(expandedProjectId === project.id ? null : project.id)}
+                onUpdate={fetchProjects}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+    </Layout>
+
   );
 }
 
@@ -595,29 +589,36 @@ function ProjectCard({
       <div className="flex flex-col lg:flex-row relative w-full">
         {/* Project Image/Placeholder */}
         <div className={cn(
-          "lg:w-80 h-56 sm:h-64 lg:h-auto relative flex items-center justify-center overflow-hidden shrink-0 border-b lg:border-b-0 lg:border-r",
-          theme === 'dark' ? "bg-slate-950/50 border-white/5" : "bg-slate-100 border-slate-200"
+          "lg:w-80 h-64 sm:h-72 lg:h-auto relative flex items-center justify-center overflow-hidden shrink-0 border-b lg:border-b-0 lg:border-r transition-all duration-500",
+          theme === 'dark' ? "bg-slate-950/70 border-white/5" : "bg-slate-100 border-slate-200"
         )}>
           {project.image_url ? (
             <img 
               src={project.image_url} 
               alt={project.title} 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60 group-hover:opacity-100" 
+              className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 opacity-95 group-hover:opacity-100" 
             />
           ) : (
             <div className={cn(
-              "flex flex-col items-center gap-3 transition-colors",
-              theme === 'dark' ? "text-slate-800 group-hover:text-teal-900" : "text-slate-300 group-hover:text-teal-200"
+              "flex flex-col items-center gap-4 transition-all duration-500 transform group-hover:scale-110",
+              theme === 'dark' ? "text-slate-700 group-hover:text-teal-500/50" : "text-slate-300 group-hover:text-teal-400/50"
             )}>
-              <FileText className="w-12 sm:w-16 h-12 sm:h-16 stroke-[1px]" />
+              <div className="relative">
+                <FileText className="w-16 sm:w-20 h-16 sm:h-20 stroke-[0.5px]" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                  <Sparkles className="w-6 h-6 animate-pulse" />
+                </div>
+              </div>
               <div className="flex flex-col items-center">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] italic">Archive</span>
-                <div className="h-px w-6 sm:w-8 bg-current mt-1" />
+                <div className="h-px w-8 bg-current mt-1 opacity-30" />
               </div>
             </div>
           )}
           <div className="absolute top-4 sm:top-6 left-4 sm:left-6">
-            <Badge className="bg-teal-500/10 text-teal-400 border border-teal-500/20 backdrop-blur-md py-1 sm:py-1.5 px-3 sm:px-4 rounded-full text-[10px] font-bold uppercase tracking-wider">
+            <Badge className={cn("px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg backdrop-blur-md transition-all", 
+              theme === 'dark' ? "bg-slate-900/80 text-teal-400 border border-teal-500/20" : "bg-white/80 text-teal-600 border border-teal-500/20"
+            )}>
               {project.category}
             </Badge>
           </div>
@@ -643,7 +644,7 @@ function ProjectCard({
             </div>
 
             <h3 className={cn(
-               "text-xl sm:text-2xl lg:text-3xl font-serif italic group-hover:text-teal-400 transition-all duration-500 leading-tight mb-3 lg:mb-4",
+               "text-xl sm:text-2xl lg:text-3xl font-serif italic group-hover:text-teal-500 transition-all duration-500 leading-tight mb-3 lg:mb-4",
                theme === 'dark' ? "text-white" : "text-slate-900"
             )}>
               {project.title}
@@ -651,7 +652,7 @@ function ProjectCard({
             
             <p className={cn(
               "text-xs sm:text-sm leading-relaxed max-w-2xl line-clamp-2 sm:line-clamp-3 italic font-light font-sans mb-6 sm:mb-8 transition-colors",
-              theme === 'dark' ? "text-slate-400" : "text-slate-600"
+              theme === 'dark' ? "text-slate-400" : "text-slate-700"
             )}>
               "{project.description}"
             </p>
@@ -746,6 +747,7 @@ function ProjectCard({
       <AnimatePresence>
         {isExpanded && (
           <motion.div 
+            key="expanded-content"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -763,19 +765,19 @@ function ProjectCard({
                   </p>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500 w-full mb-2">Subject Tags</h4>
-                  {project.tags?.map(tag => (
-                    <div className={cn("inline-flex items-center rounded-full border px-3 sm:px-4 py-1 text-[10px] sm:text-xs font-semibold focus:outline-none transition-all",
-                      theme === 'dark' ? "bg-white/5 text-slate-400 border-white/5" : "bg-white text-slate-600 border-slate-300"
-                    )}>
-                      #{tag}
-                    </div>
-                  ))}
-                  {(!project.tags || project.tags.length === 0) && (
-                    <p className="text-xs text-slate-600">No tags specified.</p>
-                  )}
-                </div>
+                  <div className="flex flex-wrap gap-2">
+                    <h4 className={cn("text-sm font-bold uppercase tracking-widest w-full mb-2", theme === 'dark' ? "text-slate-500" : "text-slate-700")}>Subject Tags</h4>
+                    {project.tags?.map((tag, idx) => (
+                      <div key={`${tag}-${idx}`} className={cn("inline-flex items-center rounded-full border px-3 sm:px-4 py-1 text-[10px] sm:text-xs font-semibold focus:outline-none transition-all",
+                        theme === 'dark' ? "bg-white/5 text-slate-400 border-white/5" : "bg-white text-slate-700 border-slate-300"
+                      )}>
+                        #{tag}
+                      </div>
+                    ))}
+                    {(!project.tags || project.tags.length === 0) && (
+                      <p className={cn("text-xs transition-colors", theme === 'dark' ? "text-slate-600" : "text-slate-500")}>No tags specified.</p>
+                    )}
+                  </div>
 
                 <div className="flex flex-wrap gap-3 sm:gap-4 pt-4">
                   {project.pdf_url && (

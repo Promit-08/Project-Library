@@ -25,7 +25,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../components/ThemeProvider';
+import { Badge } from '../components/ui/badge';
 import { cn } from '../lib/utils';
+
+import { Layout } from '../components/Layout';
 
 export function Profile() {
   const { user: authUser } = useAuth();
@@ -497,13 +500,8 @@ export function Profile() {
   const userInitial = profile?.email?.charAt(0).toUpperCase() || profile?.full_name?.charAt(0).toUpperCase() || 'U';
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full font-sans transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      <SessionNavBar />
-
-      <div className="relative flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
+    <Layout>
+      <div className="relative flex flex-1 flex-col pb-20 lg:pb-0">
         {/* DB Setup Warning Banner */}
         <AnimatePresence>
           {(dbSetupRequired || storageSetupRequired) && (
@@ -880,32 +878,36 @@ export function Profile() {
                       onClick={() => navigate(`/projects?id=${project.id}`)}
                       className={cn(
                         "group p-6 rounded-2xl border transition-all flex items-center justify-between cursor-pointer",
-                        theme === 'dark' ? "bg-white/5 border-white/5 hover:bg-white/10" : "bg-white border-slate-200 hover:shadow-md hover:border-teal-500/20"
+                        theme === 'dark' ? "bg-white/5 border-white/5 hover:bg-white/10" : "bg-white border-slate-200 hover:shadow-lg hover:border-teal-500/20"
                       )}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500">
-                          <Book className="w-6 h-6" />
+                        <div className={cn("h-16 w-16 rounded-xl flex items-center justify-center text-teal-500 overflow-hidden shrink-0 border transition-all",
+                           theme === 'dark' ? "bg-teal-500/10 border-teal-500/10" : "bg-slate-100 border-slate-200 group-hover:bg-teal-50"
+                        )}>
+                          {project.image_url ? (
+                            <img src={project.image_url} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                          ) : (
+                            <Book className="w-8 h-8 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                          )}
                         </div>
                         <div>
-                          <h4 className={cn("font-medium group-hover:text-teal-400 transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>{project.title}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] uppercase font-bold text-slate-500">{project.category}</span>
-                            <span className="text-slate-400">•</span>
-                            <span className="text-[10px] text-slate-500 font-medium">
-                              {new Date(project.created_at).toLocaleDateString()}
+                          <h4 className={cn("font-medium text-lg leading-snug group-hover:text-teal-600 transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                            {project.title}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className={cn("text-[9px] uppercase font-bold tracking-widest px-2 py-0", theme === 'dark' ? "border-teal-500/30 text-teal-400" : "border-teal-500/20 text-teal-600 bg-teal-50/50")}>
+                              {project.category}
+                            </Badge>
+                            <span className={cn("text-[10px] font-bold uppercase tracking-tight", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>
+                              {new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => navigate('/projects')}
-                        className="text-slate-500 hover:text-teal-500"
-                      >
+                      <div className={cn("p-2 rounded-full transition-colors", theme === 'dark' ? "bg-white/5" : "bg-slate-100 group-hover:bg-teal-500 group-hover:text-white")}>
                         <ChevronRight className="w-4 h-4" />
-                      </Button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -1035,6 +1037,6 @@ export function Profile() {
         title="Following" 
         users={connections.following} 
       />
-    </div>
+    </Layout>
   );
 }

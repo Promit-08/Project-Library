@@ -19,6 +19,8 @@ import {
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 
+import { Layout } from '../components/Layout';
+
 export function Settings() {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -75,13 +77,8 @@ export function Settings() {
   };
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full font-sans transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      <SessionNavBar />
-
-      <div className="flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
+    <Layout>
+      <div className="flex flex-1 flex-col pb-20 lg:pb-0">
         <main className="flex-1 p-4 sm:p-6 lg:p-12 max-w-4xl mx-auto w-full">
           <header className="mb-12">
             <motion.div
@@ -94,7 +91,7 @@ export function Settings() {
               )}>System Settings</h1>
               <p className={cn(
                 "font-light transition-colors",
-                theme === 'dark' ? "text-slate-500" : "text-slate-600"
+                theme === 'dark' ? "text-slate-500" : "text-slate-700 font-medium"
               )}>Configure your environment and security preferences.</p>
             </motion.div>
           </header>
@@ -207,7 +204,7 @@ export function Settings() {
                   <div className="space-y-2">
                     <label className={cn(
                       "text-[10px] uppercase font-bold tracking-widest",
-                      theme === 'dark' ? "text-slate-500" : "text-slate-400"
+                      theme === 'dark' ? "text-slate-500" : "text-slate-600"
                     )}>Current Password</label>
                     <input 
                       type={showPasswords ? "text" : "password"}
@@ -281,6 +278,6 @@ export function Settings() {
           </div>
         </main>
       </div>
-    </div>
+    </Layout>
   );
 }

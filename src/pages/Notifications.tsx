@@ -34,6 +34,8 @@ interface Notification {
   actor_name?: string;
 }
 
+import { Layout } from '../components/Layout';
+
 export function Notifications() {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -128,13 +130,8 @@ export function Notifications() {
   };
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full font-sans transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      <SessionNavBar />
-
-      <div className="flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
+    <Layout>
+      <div className="flex flex-1 flex-col pb-20 lg:pb-0">
         {/* DB Setup Warning Banner */}
         <AnimatePresence>
           {dbSetupRequired && (
@@ -325,6 +322,7 @@ export function Notifications() {
           </div>
         </main>
       </div>
-    </div>
+    </Layout>
+
   );
 }

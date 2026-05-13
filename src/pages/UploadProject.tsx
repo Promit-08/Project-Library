@@ -29,6 +29,13 @@ import { Badge } from '../components/ui/badge';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Setting up pdfjs worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+import { Layout } from '../components/Layout';
+
 export function UploadProject() {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -49,6 +56,9 @@ export function UploadProject() {
   
   const [isPredicting, setIsPredicting] = React.useState(false);
   const [prediction, setPrediction] = React.useState<ProjectPrediction | null>(null);
+  const [thumbnailBlob, setThumbnailBlob] = React.useState<Blob | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = React.useState<string | null>(null);
+  const [isGeneratingThumbnail, setIsGeneratingThumbnail] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(async () => {
@@ -115,18 +125,51 @@ export function UploadProject() {
     'Architecture', 'Psychology', 'Business', 'Arts', 'Other'
   ];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.type !== 'application/pdf') {
         setFileError('Only PDF files are allowed');
         setSelectedFile(null);
+        setThumbnailPreview(null);
+        setThumbnailBlob(null);
       } else if (file.size > 10 * 1024 * 1024) { // 10MB limit
         setFileError('File size must be less than 10MB');
         setSelectedFile(null);
+        setThumbnailPreview(null);
+        setThumbnailBlob(null);
       } else {
         setFileError(null);
         setSelectedFile(file);
+        
+        // Generate thumbnail
+        setIsGeneratingThumbnail(true);
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 0.5 });
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          
+          if (context) {
+            await page.render({ canvasContext: context, viewport, canvas: canvas }).promise;
+            canvas.toBlob((blob) => {
+              if (blob) {
+                setThumbnailBlob(blob);
+                setThumbnailPreview(URL.createObjectURL(blob));
+              }
+            }, 'image/jpeg', 0.8);
+          }
+        } catch (err) {
+          console.error('Error generating thumbnail:', err);
+          // Non-fatal, just won't have a thumbnail
+        } finally {
+          setIsGeneratingThumbnail(false);
+        }
       }
     }
   };
@@ -159,9 +202,10 @@ export function UploadProject() {
       setStorageSetupRequired(false);
       setDbUpdateRequired(false);
 
-      // 1. Upload File to Storage
+      // 1. Upload PDF to Storage
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${user.id}-${timestamp}.${fileExt}`;
       const filePath = `projects/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -176,11 +220,31 @@ export function UploadProject() {
         throw uploadError;
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl: pdfUrl } } = supabase.storage
         .from('projects')
         .getPublicUrl(filePath);
 
-      // 2. Save Metadata to Database
+      // 2. Upload Thumbnail if exists
+      let imageUrl = null;
+      if (thumbnailBlob) {
+        const thumbName = `${user.id}-${timestamp}-thumb.jpg`;
+        const thumbPath = `projects/${thumbName}`;
+        
+        const { error: thumbError } = await supabase.storage
+          .from('projects')
+          .upload(thumbPath, thumbnailBlob);
+          
+        if (!thumbError) {
+          const { data: { publicUrl: tUrl } } = supabase.storage
+            .from('projects')
+            .getPublicUrl(thumbPath);
+          imageUrl = tUrl;
+        } else {
+          console.error('Thumbnail upload error:', thumbError);
+        }
+      }
+
+      // 3. Save Metadata to Database
       const displayName = currentUserProfile?.full_name || user.email?.split('@')[0] || 'Scholar';
       const { error: dbError } = await supabase
         .from('projects')
@@ -193,7 +257,8 @@ export function UploadProject() {
           sector: formData.sector,
           field: formData.field,
           tags: formData.tags,
-          pdf_url: publicUrl,
+          pdf_url: pdfUrl,
+          image_url: imageUrl,
           project_date: formData.date,
         }]);
 
@@ -216,13 +281,8 @@ export function UploadProject() {
   };
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full font-sans transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      <SessionNavBar />
-
-      <div className="flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
+    <Layout>
+      <div className="flex flex-1 flex-col pb-20 lg:pb-0">
         {/* Storage/DB Setup Warning Banner */}
         <AnimatePresence>
           {(storageSetupRequired || dbUpdateRequired) && (
@@ -555,58 +615,70 @@ export function UploadProject() {
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
                     <FileText className="w-3 h-3" /> Project Document (PDF)
                   </label>
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const file = e.dataTransfer.files[0];
-                      if (file && file.type === 'application/pdf') {
-                        setSelectedFile(file);
-                        setFileError(null);
-                      } else {
-                        setFileError('Please drop a valid PDF file');
-                      }
-                    }}
-                    className={cn(
-                      "border-2 border-dashed rounded-3xl p-12 transition-all cursor-pointer flex flex-col items-center justify-center text-center group",
-                      selectedFile 
-                        ? (theme === 'dark' ? "border-teal-500/50 bg-teal-500/5" : "border-teal-500/50 bg-teal-50") 
-                        : (theme === 'dark' ? "border-white/10 hover:border-teal-500/30 hover:bg-white/5" : "border-slate-200 hover:border-teal-500/30 hover:bg-white")
-                    )}
-                  >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept=".pdf" 
-                      onChange={handleFileChange} 
-                    />
-                    
-                    <div className={cn(
-                      "h-16 w-16 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-sm",
-                      selectedFile 
-                        ? (theme === 'dark' ? "bg-teal-500/20 text-teal-400" : "bg-teal-500 text-white") 
-                        : (theme === 'dark' ? "bg-white/5 text-slate-500" : "bg-slate-50 text-slate-400")
-                    )}>
-                      {selectedFile ? <CheckCircle2 className="w-8 h-8" /> : <FileUp className="w-8 h-8" />}
+                    <div className="relative group">
+                      <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0];
+                          if (file && file.type === 'application/pdf') {
+                            setSelectedFile(file);
+                            setFileError(null);
+                          } else {
+                            setFileError('Please drop a valid PDF file');
+                          }
+                        }}
+                        className={cn(
+                          "border-2 border-dashed rounded-3xl p-12 transition-all cursor-pointer flex flex-col items-center justify-center text-center group",
+                          selectedFile 
+                            ? (theme === 'dark' ? "border-teal-500/50 bg-teal-500/5" : "border-teal-500/50 bg-teal-50") 
+                            : (theme === 'dark' ? "border-white/10 hover:border-teal-500/30 hover:bg-white/5" : "border-slate-200 hover:border-teal-500/30 hover:bg-white")
+                        )}
+                      >
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          className="hidden" 
+                          accept=".pdf" 
+                          onChange={handleFileChange} 
+                        />
+                        
+                        <div className={cn(
+                          "h-16 w-16 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-sm overflow-hidden",
+                          selectedFile 
+                            ? (theme === 'dark' ? "bg-teal-500/20 text-teal-400" : "bg-teal-500 text-white") 
+                            : (theme === 'dark' ? "bg-white/5 text-slate-500" : "bg-slate-50 text-slate-400")
+                        )}>
+                          {thumbnailPreview ? (
+                            <img src={thumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            selectedFile ? <CheckCircle2 className="w-8 h-8" /> : <FileUp className="w-8 h-8" />
+                          )}
+                        </div>
+                        
+                        {isGeneratingThumbnail && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-3xl backdrop-blur-[1px]">
+                            <Loader2 className="w-8 h-8 text-white animate-spin" />
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <p className={cn(
+                            "font-medium transition-colors",
+                            theme === 'dark' ? "text-white" : "text-slate-900"
+                          )}>
+                            {selectedFile ? selectedFile.name : 'Click or drag PDF to upload'}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'Max size: 10MB'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="space-y-1">
-                      <p className={cn(
-                        "font-medium transition-colors",
-                        theme === 'dark' ? "text-white" : "text-slate-900"
-                      )}>
-                        {selectedFile ? selectedFile.name : 'Click or drag PDF to upload'}
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'Max size: 10MB'}
-                      </p>
-                    </div>
-                  </div>
                   {fileError && (
                     <p className="text-xs text-rose-500 flex items-center gap-1.5 mt-2">
-                      <AlertCircle className="w-3 h-3" /> {fileError}
+                       <AlertCircle className="w-3 h-3" /> {fileError}
                     </p>
                   )}
                 </div>
@@ -646,6 +718,7 @@ export function UploadProject() {
           </AnimatePresence>
         </main>
       </div>
-    </div>
+    </Layout>
+
   );
 }

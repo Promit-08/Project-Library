@@ -21,6 +21,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
+import { Layout } from '../components/Layout';
+
 export function Connections() {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -151,13 +153,8 @@ export function Connections() {
   )).slice(0, 4);
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      <SessionNavBar />
-
-      <div className="flex-1 flex flex-col lg:pl-[4.5rem] pb-24 lg:pb-0">
+    <Layout>
+      <div className="flex-1 flex flex-col pb-24 lg:pb-0">
         {dbError && (
           <div className="bg-rose-500/10 border-b border-rose-500/20 px-6 py-3 flex items-center justify-between gap-4 z-50 sticky top-0 backdrop-blur-md">
             <div className="flex items-center gap-3">
@@ -412,6 +409,7 @@ export function Connections() {
           </div>
         </main>
       </div>
-    </div>
+    </Layout>
+
   );
 }

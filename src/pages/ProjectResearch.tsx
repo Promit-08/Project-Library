@@ -19,6 +19,8 @@ interface YouTubeVideo {
   };
 }
 
+import { Layout } from '../components/Layout';
+
 export function ProjectResearch() {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -62,14 +64,8 @@ export function ProjectResearch() {
   };
 
   return (
-    <div className={cn(
-      "flex min-h-screen w-full font-sans transition-colors duration-500",
-      theme === 'dark' ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-    )}>
-      {/* Sidebar */}
-      <SessionNavBar />
-
-      <div className="relative flex flex-1 flex-col lg:pl-[4.5rem] pb-20 lg:pb-0">
+    <Layout>
+      <div className="relative flex flex-1 flex-col pb-20 lg:pb-0">
         <div className="p-4 sm:p-8 lg:p-12 pb-24">
           <header className="max-w-6xl mx-auto mb-12">
             <motion.div 
@@ -86,14 +82,12 @@ export function ProjectResearch() {
               )}>Project Research</h1>
             </motion.div>
             
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-slate-500 max-w-2xl mb-8"
-            >
-              Explore thousands of project tutorials, case studies, and research videos directly from YouTube to inspire your next big breakthrough.
-            </motion.p>
+              <p className={cn(
+                "max-w-2xl mb-8 font-light transition-colors",
+                theme === 'dark' ? "text-slate-500" : "text-slate-700 font-medium leading-relaxed"
+              )}>
+                Explore thousands of project tutorials, case studies, and research videos directly from YouTube to inspire your next big breakthrough.
+              </p>
     
             <motion.form 
               initial={{ opacity: 0, y: 20 }}
@@ -303,6 +297,7 @@ export function ProjectResearch() {
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </Layout>
+
   );
 }
