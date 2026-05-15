@@ -32,7 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Setting up pdfjs worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 import { Layout } from '../components/Layout';
 
@@ -263,9 +263,9 @@ export function UploadProject() {
         }]);
 
       if (dbError) {
-        if (dbError.code === 'PGRST204' || dbError.message.includes('pdf_url') || dbError.message.includes('sector')) {
+        if (dbError.message?.includes('pdf_url') || dbError.message?.includes('sector') || dbError.message?.includes('field')) {
           setDbUpdateRequired(true);
-          throw new Error('Database schema update required (missing pdf_url, sector, or field columns).');
+          throw new Error('Database schema update required. Please follow the instructions in the warning banner above to add the missing columns.');
         }
         throw dbError;
       }
@@ -324,11 +324,18 @@ export function UploadProject() {
                   )}
                   onClick={() => {
                     if (dbUpdateRequired) {
-                      const msg = 'Run this SQL in your Supabase Editor:\n\n' + 
-                                  'ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS pdf_url TEXT;\n' +
-                                  'ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS project_date DATE;\n' +
-                                  'ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS sector TEXT;\n' +
-                                  'ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS field TEXT;';
+                      const msg = 'Run this SQL in your Supabase Editor to update your "projects" table:\n\n' + 
+                                  'ALTER TABLE public.projects \n' +
+                                  'ADD COLUMN IF NOT EXISTS sector TEXT, \n' +
+                                  'ADD COLUMN IF NOT EXISTS field TEXT, \n' +
+                                  'ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT \'{}\', \n' +
+                                  'ADD COLUMN IF NOT EXISTS pdf_url TEXT, \n' +
+                                  'ADD COLUMN IF NOT EXISTS project_date DATE DEFAULT CURRENT_DATE, \n' +
+                                  'ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0, \n' +
+                                  'ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0, \n' +
+                                  'ADD COLUMN IF NOT EXISTS rating FLOAT DEFAULT 0, \n' +
+                                  'ADD COLUMN IF NOT EXISTS rating_count INTEGER DEFAULT 0, \n' +
+                                  'ADD COLUMN IF NOT EXISTS comments_count INTEGER DEFAULT 0;';
                       alert(msg);
                     } else {
                       alert('1. Go to Supabase Storage\n2. Create a "Public" bucket named "projects"\n3. Add an "Insert" policy for authenticated users');

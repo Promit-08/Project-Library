@@ -76,7 +76,24 @@ DROP POLICY IF EXISTS "Users can update their own notifications." ON public.noti
 CREATE POLICY "Users can update their own notifications." ON public.notifications 
     FOR UPDATE USING (auth.uid() = user_id);
 
--- 7. Projects table
+-- 7. Projects table (Ensure existing table has all columns)
+ALTER TABLE public.projects 
+ADD COLUMN IF NOT EXISTS sector TEXT,
+ADD COLUMN IF NOT EXISTS field TEXT,
+ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS pdf_url TEXT,
+ADD COLUMN IF NOT EXISTS image_url TEXT,
+ADD COLUMN IF NOT EXISTS video_url TEXT,
+ADD COLUMN IF NOT EXISTS github_url TEXT,
+ADD COLUMN IF NOT EXISTS project_date DATE DEFAULT CURRENT_DATE,
+ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS rating FLOAT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS rating_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS comments_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS lat FLOAT,
+ADD COLUMN IF NOT EXISTS lng FLOAT;
+
 CREATE TABLE IF NOT EXISTS public.projects (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     student_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,

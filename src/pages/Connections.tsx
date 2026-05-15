@@ -253,19 +253,19 @@ export function Connections() {
                           theme === 'dark' ? "bg-slate-900/40 border-white/5 hover:bg-slate-900/60" : "bg-white border-slate-200 hover:border-teal-500/20"
                         )}
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <Avatar className="h-16 w-16 border-2 border-teal-500/20 shadow-lg">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0 flex-1">
+                            <Avatar className="h-16 w-16 border-2 border-teal-500/20 shadow-lg shrink-0">
                               <AvatarImage src={p.avatar_url} />
                               <AvatarFallback className="bg-slate-800 text-teal-500 font-serif italic text-xl">
                                 {(p.email || p.full_name)?.charAt(0).toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <h3 className={cn("text-lg font-serif italic transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                            <div className="min-w-0">
+                              <h3 className={cn("text-lg font-serif italic transition-colors truncate", theme === 'dark' ? "text-white" : "text-slate-900")}>
                                 {p.full_name || p.email?.split('@')[0] || 'Unknown Scholar'}
                               </h3>
-                              <p className="text-xs text-slate-500 font-medium tracking-wide">@{p.username || p.email?.split('@')[0] || 'unknown'}</p>
+                              <p className="text-xs text-slate-500 font-medium tracking-wide truncate">@{p.username || p.email?.split('@')[0] || 'unknown'}</p>
                             </div>
                           </div>
                           <Button
@@ -273,7 +273,7 @@ export function Connections() {
                             size="sm"
                             disabled={followLoading === p.id}
                             className={cn(
-                              "rounded-xl h-9 px-4 transition-all min-w-[100px] relative z-10",
+                              "rounded-xl h-9 px-4 transition-all min-w-[100px] relative z-10 shrink-0",
                               followingIds.has(p.id) 
                                 ? (theme === 'dark' ? "border-white/10 text-white hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/50" : "border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200")
                                 : "bg-teal-500 text-white hover:bg-teal-600 shadow-lg shadow-teal-500/20"

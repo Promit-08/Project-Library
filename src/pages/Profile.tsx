@@ -20,6 +20,7 @@ import {
   Plus,
   UserPlus,
   UserMinus,
+  Trash2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
@@ -55,6 +56,7 @@ export function Profile() {
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [myProjects, setMyProjects] = React.useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = React.useState(false);
+  const [deletingProjectId, setDeletingProjectId] = React.useState<string | null>(null);
   const [connections, setConnections] = React.useState<{ followers: any[], following: any[] }>({ followers: [], following: [] });
   const [loadingConnections, setLoadingConnections] = React.useState(false);
   const [followLoading, setFollowLoading] = React.useState(false);
@@ -116,6 +118,8 @@ export function Profile() {
       }
     }
   }, [targetUserId, authUser?.id]);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState<string | null>(null);
 
   const fetchConnections = async () => {
     if (!targetUserId) return;
@@ -315,6 +319,64 @@ export function Profile() {
       }
     } catch (error) {
       console.error('Error fetching project count:', error);
+    }
+  };
+
+  const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Delete button clicked for project:', projectId);
+    
+    if (!authUser || !isOwnProfile) {
+      console.warn('Delete attempted without auth or on other profile');
+      return;
+    }
+    
+    try {
+      setDeletingProjectId(projectId);
+      setShowDeleteConfirm(null);
+      console.log('Attempting Supabase delete for ID:', projectId);
+      
+      const { error, count } = await supabase
+        .from('projects')
+        .delete({ count: 'exact' })
+        .eq('id', projectId)
+        .eq('student_id', authUser.id);
+
+      if (error) {
+        console.error('Supabase delete error:', error);
+        if (error.message?.includes('permission denied') || error.code === '42501' || error.message?.includes('policy')) {
+          throw new Error('Database permission denied. You likely need to add the DELETE policy to your Supabase "projects" table. Check the "How to fix" banner at the top.');
+        }
+        throw error;
+      }
+
+      console.log('Supabase delete result - count:', count);
+
+      if (count === 0) {
+        // Try one more thing: Maybe student_id is stored differently or RLS is partially blocking
+        console.warn('Delete success but 0 rows affected. Checking project existence...');
+        const { data: checkData } = await supabase.from('projects').select('id').eq('id', projectId).maybeSingle();
+        if (checkData) {
+          throw new Error('Verification failed: The project exists but could not be deleted. This usually means the "DELETE" RLS policy is missing or your auth UID does not match the student_id.');
+        } else {
+          console.log('Project already seems to be gone.');
+        }
+      }
+
+      // Update state immediately
+      setMyProjects(prev => prev.filter(p => p.id !== projectId));
+      setProjectCount(prev => Math.max(0, prev - 1));
+      
+      console.log('Project deleted successfully from UI state:', projectId);
+      alert('Project deleted successfully.');
+    } catch (err: any) {
+      console.error('Deletion Exception:', err);
+      alert(err.message || 'Failed to delete project. Please check if you have run the latest SQL setup.');
+      setDbSetupRequired(true); // Show warning banner as it's likely a DB issue
+    } finally {
+      setDeletingProjectId(null);
     }
   };
 
@@ -905,8 +967,76 @@ export function Profile() {
                           </div>
                         </div>
                       </div>
-                      <div className={cn("p-2 rounded-full transition-colors", theme === 'dark' ? "bg-white/5" : "bg-slate-100 group-hover:bg-teal-500 group-hover:text-white")}>
-                        <ChevronRight className="w-4 h-4" />
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        {isOwnProfile && (
+                          <div className="flex items-center gap-2">
+                            <AnimatePresence>
+                              {showDeleteConfirm === project.id ? (
+                                <motion.div 
+                                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                                  exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                                  className="flex items-center gap-2 bg-rose-500 rounded-full p-1 pr-3 shadow-lg shadow-rose-500/20 z-[60]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteProject(e, project.id);
+                                    }}
+                                    className="p-1.5 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 hover:scale-110 active:scale-95 transition-all shadow-sm group/btn"
+                                    title="Confirm Deletion"
+                                  >
+                                    <Check className="w-3.5 h-3.5 transition-transform group-hover/btn:rotate-12" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowDeleteConfirm(null);
+                                    }}
+                                    className="p-1.5 bg-white/20 text-white rounded-full hover:bg-white hover:text-rose-500 hover:scale-110 active:scale-95 transition-all shadow-sm group/btn"
+                                    title="Cancel"
+                                  >
+                                    <X className="w-3.5 h-3.5 transition-transform group-hover/btn:rotate-90" />
+                                  </button>
+                                  <span className="text-[9px] font-bold text-white uppercase tracking-tighter">Delete?</span>
+                                </motion.div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setShowDeleteConfirm(project.id);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    e.nativeEvent.stopImmediatePropagation();
+                                  }}
+                                  className={cn(
+                                    "p-2.5 rounded-full transition-all relative z-50 shadow-sm shrink-0 pointer-events-auto",
+                                    deletingProjectId === project.id 
+                                      ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                      : theme === 'dark' 
+                                        ? "text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white" 
+                                        : "text-rose-50 bg-rose-500 hover:bg-rose-600 hover:text-white shadow-rose-500/10"
+                                  )}
+                                  title="Delete Project"
+                                  disabled={deletingProjectId === project.id}
+                                >
+                                  {deletingProjectId === project.id ? (
+                                    <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+                        <div className={cn("p-2 rounded-full transition-colors shrink-0", theme === 'dark' ? "bg-white/5" : "bg-slate-100 group-hover:bg-teal-500 group-hover:text-white")}>
+                          <ChevronRight className="w-4 h-4" />
+                        </div>
                       </div>
                     </motion.div>
                   ))}
