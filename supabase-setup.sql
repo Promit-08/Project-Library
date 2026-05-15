@@ -76,7 +76,53 @@ DROP POLICY IF EXISTS "Users can update their own notifications." ON public.noti
 CREATE POLICY "Users can update their own notifications." ON public.notifications 
     FOR UPDATE USING (auth.uid() = user_id);
 
--- 7. Comments table
+-- 7. Projects table
+CREATE TABLE IF NOT EXISTS public.projects (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    student_name TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL,
+    sector TEXT,
+    field TEXT,
+    tags TEXT[] DEFAULT '{}',
+    pdf_url TEXT,
+    image_url TEXT,
+    video_url TEXT,
+    github_url TEXT,
+    project_date DATE DEFAULT CURRENT_DATE,
+    likes INTEGER DEFAULT 0,
+    dislikes INTEGER DEFAULT 0,
+    rating FLOAT DEFAULT 0,
+    rating_count INTEGER DEFAULT 0,
+    comments_count INTEGER DEFAULT 0,
+    lat FLOAT,
+    lng FLOAT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 8. Project Interactions (Likes/Dislikes)
+CREATE TABLE IF NOT EXISTS public.project_interactions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    interaction_type TEXT CHECK (interaction_type IN ('like', 'dislike')) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(project_id, user_id)
+);
+
+-- 9. Ratings
+CREATE TABLE IF NOT EXISTS public.ratings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(project_id, user_id)
+);
+
+-- 10. Comments table
 CREATE TABLE IF NOT EXISTS public.comments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
@@ -87,10 +133,48 @@ CREATE TABLE IF NOT EXISTS public.comments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Enable RLS for comments
+-- 11. Enable RLS for all new tables
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.project_interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 
--- Policies for comments
+-- 12. Policies for Projects
+DROP POLICY IF EXISTS "Anyone can view projects" ON public.projects;
+CREATE POLICY "Anyone can view projects" ON public.projects
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own projects" ON public.projects;
+CREATE POLICY "Users can insert their own projects" ON public.projects
+    FOR INSERT WITH CHECK (auth.uid() = student_id);
+
+DROP POLICY IF EXISTS "Users can update their own projects" ON public.projects;
+CREATE POLICY "Users can update their own projects" ON public.projects
+    FOR UPDATE USING (auth.uid() = student_id);
+
+DROP POLICY IF EXISTS "Users can delete their own projects" ON public.projects;
+CREATE POLICY "Users can delete their own projects" ON public.projects
+    FOR DELETE USING (auth.uid() = student_id);
+
+-- 13. Policies for Interactions
+DROP POLICY IF EXISTS "Anyone can view interactions" ON public.project_interactions;
+CREATE POLICY "Anyone can view interactions" ON public.project_interactions
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can manage their own interactions" ON public.project_interactions;
+CREATE POLICY "Users can manage their own interactions" ON public.project_interactions
+    FOR ALL USING (auth.uid() = user_id);
+
+-- 14. Policies for Ratings
+DROP POLICY IF EXISTS "Anyone can view ratings" ON public.ratings;
+CREATE POLICY "Anyone can view ratings" ON public.ratings
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can manage their own ratings" ON public.ratings;
+CREATE POLICY "Users can manage their own ratings" ON public.ratings
+    FOR ALL USING (auth.uid() = user_id);
+
+-- 15. Policies for Comments
 DROP POLICY IF EXISTS "Anyone can view comments" ON public.comments;
 CREATE POLICY "Anyone can view comments" ON public.comments
     FOR SELECT USING (true);
@@ -103,7 +187,7 @@ DROP POLICY IF EXISTS "Users can delete their own comments" ON public.comments;
 CREATE POLICY "Users can delete their own comments" ON public.comments
     FOR DELETE USING (auth.uid() = user_id);
 
--- 8. RPC functions for interactions
+-- 16. RPC functions for interactions
 -- Increment interaction count
 CREATE OR REPLACE FUNCTION increment_interaction(target_project_id UUID, column_name TEXT)
 RETURNS void AS $$
@@ -131,5 +215,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 9. Trigger the cache refresh
+-- 17. Trigger the cache refresh
 NOTIFY pgrst, 'reload schema';
