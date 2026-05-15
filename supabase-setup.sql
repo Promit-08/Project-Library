@@ -76,5 +76,60 @@ DROP POLICY IF EXISTS "Users can update their own notifications." ON public.noti
 CREATE POLICY "Users can update their own notifications." ON public.notifications 
     FOR UPDATE USING (auth.uid() = user_id);
 
--- 7. Trigger the cache refresh
+-- 7. Comments table
+CREATE TABLE IF NOT EXISTS public.comments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    user_name TEXT NOT NULL,
+    user_avatar TEXT,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS for comments
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+
+-- Policies for comments
+DROP POLICY IF EXISTS "Anyone can view comments" ON public.comments;
+CREATE POLICY "Anyone can view comments" ON public.comments
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own comments" ON public.comments;
+CREATE POLICY "Users can insert their own comments" ON public.comments
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own comments" ON public.comments;
+CREATE POLICY "Users can delete their own comments" ON public.comments
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- 8. RPC functions for interactions
+-- Increment interaction count
+CREATE OR REPLACE FUNCTION increment_interaction(target_project_id UUID, column_name TEXT)
+RETURNS void AS $$
+BEGIN
+  EXECUTE format('UPDATE projects SET %I = COALESCE(%I, 0) + 1 WHERE id = $1', column_name, column_name)
+  USING target_project_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Decrement interaction count
+CREATE OR REPLACE FUNCTION decrement_interaction(target_project_id UUID, column_name TEXT)
+RETURNS void AS $$
+BEGIN
+  EXECUTE format('UPDATE projects SET %I = GREATEST(0, COALESCE(%I, 0) - 1) WHERE id = $1', column_name, column_name)
+  USING target_project_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Swap interaction (e.g. like to dislike)
+CREATE OR REPLACE FUNCTION swap_interaction(target_project_id UUID, inc_column TEXT, dec_column TEXT)
+RETURNS void AS $$
+BEGIN
+  EXECUTE format('UPDATE projects SET %I = COALESCE(%I, 0) + 1, %I = GREATEST(0, COALESCE(%I, 0) - 1) WHERE id = $1', inc_column, inc_column, dec_column, dec_column)
+  USING target_project_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 9. Trigger the cache refresh
 NOTIFY pgrst, 'reload schema';

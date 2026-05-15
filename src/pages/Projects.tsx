@@ -76,6 +76,17 @@ export function Projects() {
 
   React.useEffect(() => {
     fetchProjects();
+
+    const channel = supabase
+      .channel('projects_changes')
+      .on('postgres_changes', { event: '*', table: 'projects' }, () => {
+        fetchProjects();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   React.useEffect(() => {
@@ -269,6 +280,7 @@ function ProjectCard({
 }) {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [commentInput, setCommentInput] = React.useState('');
   const [comments, setComments] = React.useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = React.useState(false);
@@ -529,10 +541,14 @@ function ProjectCard({
       fetchComments();
       
       // Update comment count on project
-      await supabase.rpc('increment_interaction', {
+      const { error: rpcError } = await supabase.rpc('increment_interaction', {
         target_project_id: project.id,
         column_name: 'comments_count'
       });
+
+      if (rpcError) {
+        console.warn('RPC increment failed, it might not be defined in Supabase:', rpcError);
+      }
 
       await createNotification({
         userId: project.student_id,
@@ -553,6 +569,10 @@ function ProjectCard({
   const handleDeleteComment = async (commentId: string) => {
     if (!user) return;
     try {
+      // Optimistic update
+      const commentToDelete = comments.find(c => c.id === commentId);
+      if (!commentToDelete) return;
+
       const { error } = await supabase
         .from('comments')
         .delete()
@@ -564,14 +584,19 @@ function ProjectCard({
       setComments(prev => prev.filter(c => c.id !== commentId));
       
       // Update comment count on project
-      await supabase.rpc('decrement_interaction', {
+      const { error: rpcError } = await supabase.rpc('decrement_interaction', {
         target_project_id: project.id,
         column_name: 'comments_count'
       });
 
-      onUpdate();
+      if (rpcError) {
+        console.warn('RPC decrement failed, it might not be defined in Supabase:', rpcError);
+      }
+
+      await onUpdate();
     } catch (err) {
       console.error('Error deleting comment:', err);
+      alert('Failed to delete comment. Please ensure you are the author.');
     }
   };
 
@@ -867,7 +892,15 @@ function ProjectCard({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                                 <div className="flex items-center gap-1.5">
-                                  <span className={cn("text-[10px] sm:text-xs font-bold truncate max-w-[80px] sm:max-w-none", theme === 'dark' ? "text-white" : "text-slate-900")}>@{comment.user_name}</span>
+                                  <button 
+                                    onClick={() => navigate(`/profile/${comment.user_id}`)}
+                                    className={cn(
+                                      "text-[10px] sm:text-xs font-bold truncate max-w-[80px] sm:max-w-none hover:text-teal-500 transition-colors", 
+                                      theme === 'dark' ? "text-white" : "text-slate-900"
+                                    )}
+                                  >
+                                    @{comment.user_name}
+                                  </button>
                                   <span className={cn("text-[8px] sm:text-[10px] font-medium", theme === 'dark' ? "text-slate-600" : "text-slate-500")}>
                                     {new Date(comment.created_at).toLocaleDateString()}
                                   </span>
@@ -980,32 +1013,4 @@ function ProjectCard({
 }
 
 // Helper types/functions placeholder
-// In a real app, these SQL RPCs would need to be created in the Supabase Dashboard:
-/*
--- Increment interaction count
-CREATE OR REPLACE FUNCTION increment_interaction(target_project_id UUID, column_name TEXT)
-RETURNS void AS $$
-BEGIN
-  EXECUTE format('UPDATE projects SET %I = %I + 1 WHERE id = $1', column_name, column_name)
-  USING target_project_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Decrement interaction count
-CREATE OR REPLACE FUNCTION decrement_interaction(target_project_id UUID, column_name TEXT)
-RETURNS void AS $$
-BEGIN
-  EXECUTE format('UPDATE projects SET %I = GREATEST(0, %I - 1) WHERE id = $1', column_name, column_name)
-  USING target_project_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Swap interaction (e.g. like to dislike)
-CREATE OR REPLACE FUNCTION swap_interaction(target_project_id UUID, inc_column TEXT, dec_column TEXT)
-RETURNS void AS $$
-BEGIN
-  EXECUTE format('UPDATE projects SET %I = %I + 1, %I = GREATEST(0, %I - 1) WHERE id = $1', inc_column, inc_column, dec_column, dec_column)
-  USING target_project_id;
-END;
-$$ LANGUAGE plpgsql;
-*/
+// Note: SQL RPCs for interaction counts are defined in supabase-setup.sql

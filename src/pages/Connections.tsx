@@ -40,6 +40,17 @@ export function Connections() {
       fetchCurrentUserProfile();
       fetchProfiles();
       fetchFollowing();
+
+      const channel = supabase
+        .channel('profiles_changes')
+        .on('postgres_changes', { event: '*', table: 'profiles' }, () => {
+          fetchProfiles();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -144,7 +155,8 @@ export function Connections() {
     p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.university?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.work?.toLowerCase().includes(searchQuery.toLowerCase())
+    p.work?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const recommendedProfiles = profiles.filter(p => !followingIds.has(p.id) && (
@@ -251,9 +263,9 @@ export function Connections() {
                             </Avatar>
                             <div>
                               <h3 className={cn("text-lg font-serif italic transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                                {p.full_name}
+                                {p.full_name || p.email?.split('@')[0] || 'Unknown Scholar'}
                               </h3>
-                              <p className="text-xs text-slate-500 font-medium tracking-wide">@{p.username}</p>
+                              <p className="text-xs text-slate-500 font-medium tracking-wide">@{p.username || p.email?.split('@')[0] || 'unknown'}</p>
                             </div>
                           </div>
                           <Button

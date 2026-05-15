@@ -32,7 +32,7 @@ export function Home() {
 
   const fetchProfile = async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -40,23 +40,43 @@ export function Home() {
     
     if (data) {
       setProfile(data);
+    } else if (!error && user) {
+      // Auto-create profile if missing
+      const initialProfile = {
+        id: user.id,
+        username: user.email?.split('@')[0] || 'user',
+        full_name: user.email?.split('@')[0] || 'User',
+        email: user.email || '',
+      };
+      
+      const { data: newData } = await supabase
+        .from('profiles')
+        .insert([initialProfile])
+        .select()
+        .single();
+      
+      if (newData) {
+        setProfile(newData);
+      }
     }
   };
 
   const fetchStats = async () => {
     try {
-      const [{ count: totalProjects }, { count: myProjects }, { data: students }] = await Promise.all([
+      const [
+        { count: totalProjects }, 
+        { count: myProjects }, 
+        { count: totalScholarsCount }
+      ] = await Promise.all([
         supabase.from('projects').select('*', { count: 'exact', head: true }),
         user ? supabase.from('projects').select('*', { count: 'exact', head: true }).eq('student_id', user.id) : { count: 0 },
-        supabase.from('projects').select('student_name')
+        supabase.from('profiles').select('*', { count: 'exact', head: true })
       ]);
-
-      const uniqueScholars = new Set(students?.map(s => s.student_name)).size;
 
       setStats({
         activeProjects: totalProjects || 0,
         myWorks: myProjects || 0,
-        totalScholars: uniqueScholars || 0,
+        totalScholars: totalScholarsCount || 0,
         loading: false
       });
     } catch (err) {
@@ -64,6 +84,30 @@ export function Home() {
       setStats(prev => ({ ...prev, loading: false }));
     }
   };
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    // Realtime subscriptions for stats
+    const projectsSubscription = supabase
+      .channel('projects_stats')
+      .on('postgres_changes', { event: '*', table: 'projects' }, () => {
+        fetchStats();
+      })
+      .subscribe();
+
+    const profilesSubscription = supabase
+      .channel('profiles_stats')
+      .on('postgres_changes', { event: '*', table: 'profiles' }, () => {
+        fetchStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(projectsSubscription);
+      supabase.removeChannel(profilesSubscription);
+    };
+  }, [user]);
 
   const displayName = profile?.full_name || user?.email?.split('@')[0];
 
